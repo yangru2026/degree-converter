@@ -700,6 +700,90 @@ body {
 }
 .script-item .copy-btn-small:hover { background: #E85A8A; }
 .script-item .copy-btn-small.copied { background: #52c41a; }
+.card-tag-btn {
+  padding: 4px 10px;
+  background: #f5f5f5;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 8px;
+  font-size: 11px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 6px;
+}
+.card-tag-btn:hover {
+  border-color: #999;
+  color: #666;
+}
+.user-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 4px;
+}
+.user-tag.offline { background: #ffebee; color: #c62828; }
+.user-tag.hot { background: #fff3e0; color: #e65100; }
+.user-tag.new { background: #e8f5e9; color: #2e7d32; }
+.user-tag.rec { background: #e3f2fd; color: #1565c0; }
+
+/* Tag Modal */
+.tag-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  padding: 20px;
+}
+.tag-modal-overlay.show { display: flex; }
+.tag-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 320px;
+  padding: 20px;
+}
+.tag-modal h3 {
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+.tag-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.tag-option {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #e8e8e8;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+.tag-option:hover { border-color: #999; }
+.tag-option.selected {
+  border-color: var(--active-color, #B89098);
+  background: var(--light-color, #F0E8EA);
+  color: var(--active-color, #B89098);
+}
+.tag-modal-footer {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.tag-modal-footer button {
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+}
 .script-text {
   font-size: 13px;
   line-height: 1.6;
@@ -839,6 +923,24 @@ body {
     <div class="sort-modal-footer">
       <button class="btn-cancel" onclick="closeSortModal()">取消</button>
       <button class="btn-save" onclick="saveSeriesOrder()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tag Modal -->
+<div class="tag-modal-overlay" id="tagModal" onclick="closeTagModal(event)">
+  <div class="tag-modal" onclick="event.stopPropagation()">
+    <h3 id="tagModalTitle">🏷️ 标记花色</h3>
+    <div class="tag-options" id="tagOptions">
+      <button class="tag-option" data-tag="" onclick="selectTag(this)">无标记</button>
+      <button class="tag-option" data-tag="下架" onclick="selectTag(this)">下架</button>
+      <button class="tag-option" data-tag="热销" onclick="selectTag(this)">热销</button>
+      <button class="tag-option" data-tag="新品" onclick="selectTag(this)">新品</button>
+      <button class="tag-option" data-tag="推荐" onclick="selectTag(this)">推荐</button>
+    </div>
+    <div class="tag-modal-footer">
+      <button class="btn-cancel" onclick="closeTagModal()">取消</button>
+      <button class="btn-save" onclick="saveTag()">保存</button>
     </div>
   </div>
 </div>
@@ -1096,6 +1198,14 @@ function renderCard(d) {
   const eyeImgs = d.上眼图 ? (Array.isArray(d.上眼图) ? d.上眼图 : [d.上眼图]).filter(Boolean) : [];
   const hasImg = eyeImgs.length > 0;
   
+  // 用户标记
+  const userTag = getUserTag(d.花名);
+  let userTagHtml = '';
+  if (userTag) {
+    const tagClass = userTag === '下架' ? 'offline' : (userTag === '新品' ? 'new' : (userTag === '热销' ? 'hot' : 'rec'));
+    userTagHtml = `<span class="user-tag ${tagClass}">${userTag}</span>`;
+  }
+  
   // 状态标签
   let statusTag = '';
   if (d.状态) {
@@ -1120,7 +1230,7 @@ function renderCard(d) {
       <div class="card-img" onclick='openModal(${JSON.stringify(d).replace(/'/g, "\\'")})'>${imgHtml}</div>
       <div class="card-info">
         <div class="card-name" onclick='openModal(${JSON.stringify(d).replace(/'/g, "\\'")})'>
-          <span>${d.花名}</span>
+          <span>${d.花名}${userTagHtml}</span>
           <span class="diameter">${d.直径}mm</span>
         </div>
         <div class="card-tags" onclick='openModal(${JSON.stringify(d).replace(/'/g, "\\'")})'>
@@ -1130,6 +1240,7 @@ function renderCard(d) {
         </div>
         <div class="card-actions">
           <button class="card-copy-btn" onclick="copyCardParams(this, '${paramsText.replace(/'/g, "\\'")}');event.stopPropagation();">📋 复制参数</button>
+          <button class="card-tag-btn" onclick="openTagModal('${d.花名.replace(/'/g, "\\'")}');event.stopPropagation();">🏷️ 标记</button>
         </div>
       </div>
     </div>
@@ -1396,6 +1507,59 @@ document.addEventListener('keydown', e => {
     closeSortModal();
   }
 });
+
+// === User Tags ===
+let CURRENT_TAG_FLOWER = '';
+let CURRENT_SELECTED_TAG = '';
+
+function getUserTags() {
+  try {
+    const saved = localStorage.getItem('userTags');
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) { return {}; }
+}
+
+function setUserTag(flowerName, tag) {
+  const tags = getUserTags();
+  if (tag) {
+    tags[flowerName] = tag;
+  } else {
+    delete tags[flowerName];
+  }
+  localStorage.setItem('userTags', JSON.stringify(tags));
+}
+
+function getUserTag(flowerName) {
+  return getUserTags()[flowerName] || '';
+}
+
+function openTagModal(flowerName) {
+  CURRENT_TAG_FLOWER = flowerName;
+  CURRENT_SELECTED_TAG = getUserTag(flowerName);
+  document.getElementById('tagModalTitle').textContent = '🏷️ 标记：' + flowerName;
+  document.querySelectorAll('#tagOptions .tag-option').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.tag === CURRENT_SELECTED_TAG);
+  });
+  document.getElementById('tagModal').classList.add('show');
+}
+
+function closeTagModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('tagModal').classList.remove('show');
+}
+
+function selectTag(btn) {
+  document.querySelectorAll('#tagOptions .tag-option').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  CURRENT_SELECTED_TAG = btn.dataset.tag;
+}
+
+function saveTag() {
+  setUserTag(CURRENT_TAG_FLOWER, CURRENT_SELECTED_TAG);
+  closeTagModal();
+  render();
+  showToast(CURRENT_SELECTED_TAG ? '已标记「' + CURRENT_SELECTED_TAG + '」' : '标记已清除');
+}
 
 // Init
 switchBrand('misheng');
