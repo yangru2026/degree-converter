@@ -157,6 +157,123 @@ body {
   color: #fff;
   border-color: var(--active-color, #FF6B9D);
 }
+.sort-btn {
+  padding: 8px 14px;
+  background: #fff;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.sort-btn:hover {
+  border-color: var(--active-color, #B89098);
+  color: var(--active-color, #B89098);
+}
+
+/* Sort Modal */
+.sort-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+  padding: 20px;
+}
+.sort-modal-overlay.show { display: flex; }
+.sort-modal {
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.sort-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sort-modal-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.sort-modal-header .close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f5f5f5;
+  cursor: pointer;
+  font-size: 16px;
+  color: #999;
+}
+.sort-modal-body {
+  padding: 12px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+.sort-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fafafa;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: grab;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+.sort-item:hover { background: #f0f0f0; }
+.sort-item.dragging {
+  opacity: 0.5;
+  border-color: var(--active-color, #B89098);
+}
+.sort-item .drag-handle {
+  color: #ccc;
+  font-size: 16px;
+  cursor: grab;
+}
+.sort-item .sort-series-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+.sort-item .sort-series-count {
+  font-size: 12px;
+  color: #999;
+}
+.sort-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.sort-modal-footer button {
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.sort-modal-footer .btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+.sort-modal-footer .btn-save {
+  background: var(--active-color, #B89098);
+  color: #fff;
+}
 .stats {
   margin-top: 10px;
   font-size: 12px;
@@ -655,6 +772,7 @@ body {
       <select id="colorFilter" onchange="render()">
         <option value="">全部色系</option>
       </select>
+      <button class="sort-btn" onclick="openSortModal()" title="调整系列显示顺序">⚙️ 系列排序</button>
     </div>
     <div class="period-bar" id="periodBar"></div>
     <div class="stats">
@@ -709,6 +827,21 @@ body {
 </div>
 
 <div class="toast" id="toast">已复制</div>
+
+<!-- Series Sort Modal -->
+<div class="sort-modal-overlay" id="sortModal" onclick="closeSortModal(event)">
+  <div class="sort-modal" onclick="event.stopPropagation()">
+    <div class="sort-modal-header">
+      <h3>📋 调整系列显示顺序</h3>
+      <button class="close" onclick="closeSortModal()">×</button>
+    </div>
+    <div class="sort-modal-body" id="sortList"></div>
+    <div class="sort-modal-footer">
+      <button class="btn-cancel" onclick="closeSortModal()">取消</button>
+      <button class="btn-save" onclick="saveSeriesOrder()">保存</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const DATA_URL = null; // 内嵌数据，无需外部文件
@@ -806,6 +939,10 @@ function switchBrand(brand) {
   
   // 重置筛选
   document.getElementById('search').value = '';
+  
+  // 加载已保存的系列排序
+  CURRENT_SORT_ORDER = [];
+  loadSeriesOrder();
   
   // 渲染抛期分类
   renderPeriodPills();
@@ -926,7 +1063,7 @@ function render() {
     bySeries[series].push(d);
   });
   
-  const seriesOrder = Object.keys(SERIES_CONFIG);
+  const seriesOrder = CURRENT_SORT_ORDER.length > 0 ? CURRENT_SORT_ORDER : Object.keys(SERIES_CONFIG);
   const sortedSeries = Object.keys(bySeries).sort((a, b) => {
     const ia = seriesOrder.indexOf(a);
     const ib = seriesOrder.indexOf(b);
@@ -1077,20 +1214,23 @@ function openModal(d) {
   
   let scripts = [];
   if (d.描述话术) {
-    if (Array.isArray(d.描述话术)) {
-      scripts = d.描述话术.filter(s => s && (s.text || s));
-    } else if (typeof d.描述话术 === 'object') {
-      scripts = Object.entries(d.描述话术).map(([k, v]) => ({ tag: k, text: v }));
+    const raw = typeof d.描述话术 === 'string' ? d.描述话术 : (d.描述话术.text || '');
+    // 支持 --- 分隔多条话术
+    if (raw.includes('---')) {
+      scripts = raw.split('---').map(s => s.trim()).filter(Boolean).map((s, i) => ({ tag: `话术 ${i+1}`, text: s }));
+    } else if (raw.includes('\n') && raw.split('\n').filter(l => l.trim()).length > 1) {
+      // 多行也视为多条
+      scripts = raw.split('\n').map(s => s.trim()).filter(Boolean).map((s, i) => ({ tag: `话术 ${i+1}`, text: s }));
     } else {
-      scripts = [{ tag: '默认话术', text: d.描述话术 }];
+      scripts = [{ tag: '默认话术', text: raw }];
     }
   }
   
   if (scripts.length > 0) {
     scriptsSec.style.display = '';
     scriptsList.innerHTML = scripts.map((s, i) => {
-      const text = typeof s === 'string' ? s : (s.text || '');
-      const tag = typeof s === 'string' ? `话术 ${i+1}` : (s.tag || `话术 ${i+1}`);
+      const text = s.text || '';
+      const tag = s.tag || `话术 ${i+1}`;
       return `
         <div class="script-item">
           <div class="script-item-header">
@@ -1134,8 +1274,127 @@ function showToast(msg) {
   setTimeout(() => toast.classList.remove('show'), 2000);
 }
 
+// === Series Sort ===
+let CURRENT_SORT_ORDER = [];
+let DRAG_SRC = null;
+
+function getSeriesOrderKey() {
+  return 'seriesOrder_' + CURRENT_BRAND;
+}
+
+function loadSeriesOrder() {
+  try {
+    const saved = localStorage.getItem(getSeriesOrderKey());
+    if (saved) CURRENT_SORT_ORDER = JSON.parse(saved);
+  } catch (e) {}
+}
+
+function openSortModal() {
+  const modal = document.getElementById('sortModal');
+  const list = document.getElementById('sortList');
+  
+  // 获取当前品牌下的所有系列
+  const brandData = ALL_DATA.filter(d => d.品牌 === BRAND_CONFIG[CURRENT_BRAND].name);
+  const seriesSet = [...new Set(brandData.map(d => d.系列).filter(Boolean))];
+  
+  // 合并已保存的顺序和新系列
+  const saved = CURRENT_SORT_ORDER.length > 0 ? CURRENT_SORT_ORDER : Object.keys(SERIES_CONFIG);
+  const ordered = [];
+  const seen = new Set();
+  
+  // 先按保存的顺序
+  for (const s of saved) {
+    if (seriesSet.includes(s) && !seen.has(s)) {
+      ordered.push(s);
+      seen.add(s);
+    }
+  }
+  // 再添加未排序的新系列
+  for (const s of seriesSet) {
+    if (!seen.has(s)) ordered.push(s);
+  }
+  
+  CURRENT_SORT_ORDER = ordered;
+  
+  list.innerHTML = ordered.map((s, i) => {
+    const count = brandData.filter(d => d.系列 === s).length;
+    const sc = SERIES_CONFIG[s] || { icon: '✨', color: '#999' };
+    return `
+      <div class="sort-item" draggable="true" data-index="${i}" data-series="${s}">
+        <span class="drag-handle">⋮⋮</span>
+        <span class="sort-series-name">${sc.icon} ${s}</span>
+        <span class="sort-series-count">${count}款</span>
+      </div>
+    `;
+  }).join('');
+  
+  // 绑定拖拽事件
+  list.querySelectorAll('.sort-item').forEach(item => {
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('drop', handleDrop);
+    item.addEventListener('dragend', handleDragEnd);
+  });
+  
+  modal.classList.add('show');
+}
+
+function closeSortModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('sortModal').classList.remove('show');
+}
+
+function handleDragStart(e) {
+  DRAG_SRC = this;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function handleDrop(e) {
+  e.stopPropagation();
+  if (DRAG_SRC === this) return;
+  
+  const list = document.getElementById('sortList');
+  const items = [...list.querySelectorAll('.sort-item')];
+  const srcIdx = items.indexOf(DRAG_SRC);
+  const dstIdx = items.indexOf(this);
+  
+  if (srcIdx < dstIdx) {
+    this.after(DRAG_SRC);
+  } else {
+    this.before(DRAG_SRC);
+  }
+  
+  // 更新 CURRENT_SORT_ORDER
+  const newOrder = [...list.querySelectorAll('.sort-item')].map(el => el.dataset.series);
+  CURRENT_SORT_ORDER = newOrder;
+}
+
+function handleDragEnd() {
+  this.classList.remove('dragging');
+  DRAG_SRC = null;
+}
+
+function saveSeriesOrder() {
+  const list = document.getElementById('sortList');
+  const newOrder = [...list.querySelectorAll('.sort-item')].map(el => el.dataset.series);
+  CURRENT_SORT_ORDER = newOrder;
+  localStorage.setItem(getSeriesOrderKey(), JSON.stringify(newOrder));
+  closeSortModal();
+  render();
+  showToast('系列顺序已保存');
+}
+
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') {
+    closeModal();
+    closeSortModal();
+  }
 });
 
 // Init
