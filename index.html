@@ -1,1569 +1,902 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>美瞳花色素材库</title>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  background: #f8f9fa;
-  min-height: 100vh;
-  color: #333;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>弥生/极氧 度数换算</title>
+    <script src="https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f1f5f4;
+            min-height: 100vh;
+            padding: 16px;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+        .brand-switch {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 12px;
+            background: #fff;
+            padding: 8px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .brand-btn {
+            padding: 4px 20px;
+            border: 1px solid #d0ddd8;
+            background: transparent;
+            color: #888;
+            border-radius: 15px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .brand-btn.active {
+            background: #7ba7a6;
+            color: white;
+            font-weight: 600;
+            border-color: #7ba7a6;
+        }
+        .brand-name {
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 2px;
+        }
+        .clear-btn {
+            padding: 4px 14px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.5);
+            color: white;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .brand-header {
+            text-align: center;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #7ba7a6;
+            border-radius: 12px;
+            color: white;
+        }
+        .clear-row {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 8px;
+        }
+        .clear-btn {
+            padding: 4px 14px;
+            background: #fff;
+            border: 1px solid #d0ddd8;
+            color: #888;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .clear-btn:hover {
+            background: #f1f5f4;
+            color: #7ba7a6;
+            border-color: #7ba7a6;
+        }
 
-/* Brand Switch */
-.brand-bar {
-  display: flex;
-  gap: 0;
-  padding: 12px 20px 0;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.brand-tab {
-  flex: 1;
-  padding: 10px 16px 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 700;
-  color: #888;
-  position: relative;
-  transition: all 0.3s;
-  border-radius: 12px 12px 0 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  line-height: 1.3;
-}
-.brand-tab:hover { color: #555; }
-.brand-tab.active {
-  color: #fff;
-  background: var(--brand-color);
-}
-.brand-tab .brand-tag {
-  font-size: 10px;
-  font-weight: 400;
-  opacity: 0.7;
-  letter-spacing: 0.5px;
-}
-.brand-tab.misheng { --brand-color: #C4788F; }
-.brand-tab.jiyang { --brand-color: #4A6FA5; }
-.brand-tab.jiyang { --brand-color: #4A90D9; }
+        /* 截图识别折叠 */
+        .ocr-fold {
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .ocr-fold-header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+        .ocr-fold-header:hover {
+            background: #f5faf8;
+        }
+        .ocr-fold-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #3d5a4d;
+        }
+        .ocr-fold-arrow {
+            font-size: 12px;
+            color: #888;
+            transition: transform 0.3s;
+        }
+        .ocr-fold.open .ocr-fold-arrow {
+            transform: rotate(180deg);
+        }
+        .ocr-fold-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .ocr-fold.open .ocr-fold-body {
+            max-height: 400px;
+        }
+        .ocr-fold-inner {
+            padding: 0 16px 16px;
+        }
+        .ocr-upload {
+            border: 2px dashed #d0ddd8;
+            border-radius: 8px;
+            padding: 20px 12px;
+            text-align: center;
+            cursor: pointer;
+        }
+        .ocr-upload:hover {
+            border-color: #7ba7a6;
+            background: #f1f5f4;
+        }
+        .ocr-icon { font-size: 28px; margin-bottom: 4px; }
+        .ocr-text { color: #888; font-size: 12px; line-height: 1.5; }
+        .ocr-text strong { color: #7ba7a6; }
+        .ocr-input { display: none; }
+        .ocr-preview { margin-top: 8px; display: none; text-align: center; }
+        .ocr-preview.show { display: block; }
+        .ocr-preview img { max-width: 100%; max-height: 180px; border-radius: 6px; border: 1px solid #d0ddd8; }
+        .ocr-status {
+            margin-top: 8px; padding: 8px 12px; border-radius: 6px;
+            font-size: 12px; display: none;
+        }
+        .ocr-status.show { display: block; }
+        .ocr-status.processing { background: #f1f5f4; color: #7ba7a6; }
+        .ocr-status.success { background: #f0fdf4; color: #15803d; }
+        .ocr-status.error { background: #fef2f2; color: #dc2626; }
+        .ocr-status.localwarn { background: #fffbeb; color: #b45309; }
+        .ocr-raw-text {
+            margin-top: 8px; padding: 8px 12px; background: #f8f5f2;
+            border: 1px solid #d0ddd8; border-radius: 8px; font-size: 11px;
+            color: #888; white-space: pre-wrap; word-break: break-all;
+            max-height: 80px; overflow-y: auto; display: none;
+        }
+        .ocr-raw-text.show { display: block; }
+        .ocr-raw-text::before {
+            content: "📝 OCR识别到的原始文字：";
+            display: block; font-weight: 600; color: #666; margin-bottom: 4px;
+        }
+        .ocr-filled-tag {
+            display: inline-block; font-size: 11px; padding: 2px 8px;
+            border-radius: 10px; background: #f0fdf4; color: #15803d;
+            margin-left: 6px; font-weight: 500;
+        }
 
-/* Header */
-.header {
-  background: #fff;
-  padding: 0 20px 20px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.header-inner {
-  max-width: 1200px;
-  margin: 0 auto;
-}
-.header-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 0 12px;
-}
-.header h1 {
-  font-size: 18px;
-  color: #222;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-}
-.header h1 .brand-icon {
-  font-size: 22px;
-}
-.refresh-btn {
-  padding: 8px 16px;
-  background: #f5f5f5;
-  color: #666;
-  border: none;
-  border-radius: 20px;
-  font-size: 13px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: all 0.2s;
-  font-weight: 500;
-}
-.refresh-btn:hover { background: #eee; }
-.refresh-btn.spinning .refresh-icon { animation: spin 0.8s linear infinite; }
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        /* 左右眼并排 */
+        .eyes-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        @media (max-width: 480px) {
+            .eyes-row { grid-template-columns: 1fr; }
+        }
+        .eye-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .eye-card-title {
+            font-size: 15px; font-weight: 600; color: #3d5a4d;
+            margin-bottom: 12px; text-align: center;
+            padding-bottom: 8px; border-bottom: 1px solid #f0e8e0;
+        }
+        .eye-input-row {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 10px;
+        }
+        .eye-input-row label {
+            font-size: 12px; color: #888; width: 70px; flex-shrink: 0;
+        }
+        .btn-minus, .btn-plus {
+            width: 32px; height: 32px; border: none; background: #fff;
+            color: #7ba7a6; font-size: 16px; border-radius: 6px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.06); border: 1px solid #d0ddd8;
+            flex-shrink: 0;
+        }
+        .btn-minus:active, .btn-plus:active { background: #f1f5f4; }
+        .degree-input {
+            width: 60px; height: 32px; background: #fff;
+            border: 1px solid #d0ddd8; border-radius: 6px;
+            color: #333; font-size: 15px; text-align: center;
+            -webkit-appearance: none; flex-shrink: 0;
+        }
+        .degree-input:focus { outline: none; border-color: #7ba7a6; }
+        .eye-result {
+            text-align: center; font-size: 13px; color: #888;
+            margin-top: 8px;
+        }
+        .eye-result span {
+            color: #7ba7a6; font-weight: 600; font-size: 20px;
+        }
 
-.filters {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-.filters input, .filters select {
-  padding: 10px 14px;
-  border: 1.5px solid #e8e8e8;
-  border-radius: 10px;
-  font-size: 14px;
-  outline: none;
-  background: #fff;
-  transition: all 0.2s;
-  color: #333;
-}
-.filters input:focus, .filters select:focus {
-  border-color: var(--active-color, #FF6B9D);
-  box-shadow: 0 0 0 3px rgba(255,107,157,0.1);
-}
-.filters input {
-  flex: 1;
-  min-width: 200px;
-}
-.filters select {
-  min-width: 120px;
-  cursor: pointer;
-}
+        /* 最终结果放大 */
+        .final-result-box {
+            background: #7ba7a6;
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .final-result-box .label {
+            font-size: 13px; opacity: 0.9; margin-bottom: 4px;
+        }
+        .final-result-box .degree {
+            font-size: 36px; font-weight: 700; line-height: 1.2;
+        }
+        .final-result-box .eye-label {
+            font-size: 12px; opacity: 0.8; margin-top: 4px;
+        }
+        .final-result-row {
+            display: flex; gap: 12px; justify-content: center;
+        }
+        .final-result-row > div { flex: 1; }
 
-.period-bar {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-.period-pill {
-  padding: 5px 14px;
-  border-radius: 16px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1.5px solid #e8e8e8;
-  background: #fff;
-  color: #888;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.period-pill:hover {
-  border-color: var(--active-color, #FF6B9D);
-  color: var(--active-color, #FF6B9D);
-}
-.period-pill.active {
-  background: var(--active-color, #FF6B9D);
-  color: #fff;
-  border-color: var(--active-color, #FF6B9D);
-}
-.sort-btn {
-  padding: 8px 14px;
-  background: #fff;
-  border: 1.5px solid #e8e8e8;
-  border-radius: 12px;
-  font-size: 13px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.sort-btn:hover {
-  border-color: var(--active-color, #B89098);
-  color: var(--active-color, #B89098);
-}
+        /* 操作按钮 */
+        .action-btns {
+            display: flex; gap: 10px; margin-bottom: 16px;
+        }
+        .action-btns button {
+            flex: 1; padding: 12px 0; border: none; border-radius: 20px;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+        }
+        .btn-copy { background: #7ba7a6; color: white; }
+        .btn-screenshot { background: #7ba7a6; color: white; }
+        .btn-copy:active, .btn-screenshot:active { opacity: 0.9; }
 
-/* Sort Modal */
-.sort-modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 400;
-  padding: 20px;
-}
-.sort-modal-overlay.show { display: flex; }
-.sort-modal {
-  background: #fff;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 400px;
-  max-height: 80vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.sort-modal-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.sort-modal-header h3 {
-  font-size: 16px;
-  font-weight: 700;
-}
-.sort-modal-header .close {
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  border: none;
-  background: #f5f5f5;
-  cursor: pointer;
-  font-size: 16px;
-  color: #999;
-}
-.sort-modal-body {
-  padding: 12px 20px;
-  overflow-y: auto;
-  flex: 1;
-}
-.sort-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: #fafafa;
-  border-radius: 12px;
-  margin-bottom: 8px;
-  cursor: grab;
-  transition: all 0.2s;
-  border: 2px solid transparent;
-}
-.sort-item:hover { background: #f0f0f0; }
-.sort-item.dragging {
-  opacity: 0.5;
-  border-color: var(--active-color, #B89098);
-}
-.sort-item .drag-handle {
-  color: #ccc;
-  font-size: 16px;
-  cursor: grab;
-}
-.sort-item .sort-series-name {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 500;
-}
-.sort-item .sort-series-count {
-  font-size: 12px;
-  color: #999;
-}
-.sort-modal-footer {
-  padding: 12px 20px;
-  border-top: 1px solid #f0f0f0;
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-.sort-modal-footer button {
-  padding: 8px 18px;
-  border-radius: 10px;
-  border: none;
-  font-size: 13px;
-  cursor: pointer;
-  font-weight: 500;
-}
-.sort-modal-footer .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
-}
-.sort-modal-footer .btn-save {
-  background: var(--active-color, #B89098);
-  color: #fff;
-}
-.stats {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #aaa;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.stats b { color: var(--active-color, #FF6B9D); }
-.sync-status {
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: #f5f5f5;
-  color: #999;
-}
-.sync-status.ok { background: #E8F5E9; color: #4CAF50; }
-.sync-status.error { background: #FFEBEE; color: #F44336; }
+        /* 截图预览 */
+        .screenshot-preview {
+            display: none; margin: 0 auto 16px; text-align: center;
+        }
+        .screenshot-preview.show { display: block; }
+        .screenshot-preview img {
+            max-width: 100%; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .screenshot-hint { margin-top: 8px; font-size: 12px; color: #888; }
 
-.container {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-/* Series Section */
-.series-group {
-  margin-bottom: 32px;
-}
-.series-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding: 0 4px;
-}
-.series-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
-.series-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #222;
-}
-.series-count {
-  font-size: 12px;
-  color: #999;
-  font-weight: 400;
-  margin-left: 4px;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px;
-}
-.card {
-  background: #fff;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
-  cursor: pointer;
-  transition: all 0.25s ease;
-  border: 1.5px solid transparent;
-  position: relative;
-}
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-  border-color: var(--active-color, #FFD6E5);
-}
-.card-img {
-  width: 100%;
-  height: 150px;
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, #f5f5f5, #eee);
-}
-.card-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 0.3s ease;
-}
-.card:hover .card-img img {
-  transform: scale(1.04);
-}
-.card-img .img-count {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  background: rgba(0,0,0,0.5);
-  color: #fff;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 500;
-}
-.card-img-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255,255,255,0.9);
-  font-size: 13px;
-  gap: 4px;
-}
-.card-img-placeholder .placeholder-icon { font-size: 24px; opacity: 0.6; }
-.card-img-placeholder .placeholder-name { font-size: 15px; font-weight: 600; opacity: 0.9; }
-.card-img-placeholder .placeholder-tag { font-size: 10px; padding: 2px 8px; background: rgba(255,255,255,0.2); border-radius: 10px; }
-
-.card-info {
-  padding: 12px 14px 14px;
-}
-.card-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.card-name .diameter { font-size: 12px; color: #999; font-weight: 400; }
-.card-tags {
-  display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-  align-items: center;
-}
-.tag {
-  padding: 2px 8px;
-  border-radius: 16px;
-  font-size: 11px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.tag-series {
-  background: var(--tag-bg, #FFF0F5);
-  color: var(--tag-color, #FF6B9D);
-  border: 1px solid var(--tag-border, #FFD6E5);
-}
-.tag-color {
-  color: #fff;
-  font-size: 10px;
-  padding: 2px 7px;
-}
-.tag-status {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 16px;
-  font-weight: 600;
-  color: #fff;
-}
-.tag-status.offline { background: #F44336; }
-.tag-status.new { background: #4CAF50; }
-.tag-status.hot { background: #FF9800; }
-.card-params {
-  display: flex;
-  gap: 10px;
-  font-size: 11px;
-  color: #aaa;
-}
-.card-actions {
-  margin-top: 8px;
-  display: flex;
-  gap: 6px;
-}
-.card-copy-btn {
-  padding: 4px 10px;
-  background: #f5f5f5;
-  color: #666;
-  border: none;
-  border-radius: 10px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
-}
-.card-copy-btn:hover {
-  background: var(--active-color, #FF6B9D);
-  color: #fff;
-}
-.card-copy-btn.copied {
-  background: #52c41a;
-  color: #fff;
-}
-
-.loading {
-  text-align: center;
-  padding: 80px 20px;
-  color: var(--active-color, #C4788F);
-}
-.loading-icon {
-  font-size: 40px;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-@keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
-
-.empty {
-  text-align: center;
-  padding: 60px 20px;
-  color: #999;
-  font-size: 15px;
-}
-.empty-icon { font-size: 48px; margin-bottom: 12px; }
-
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 200;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  backdrop-filter: blur(6px);
-}
-.modal-overlay.active { display: flex; }
-.modal {
-  background: #fff;
-  border-radius: 20px;
-  max-width: 700px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  position: relative;
-  animation: modalIn 0.25s ease;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
-}
-@keyframes modalIn {
-  from { opacity: 0; transform: scale(0.92) translateY(20px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
-}
-.modal-header {
-  padding: 20px 20px 0;
-  position: relative;
-}
-.modal-close {
-  position: absolute;
-  top: 14px; right: 14px;
-  width: 32px; height: 32px;
-  border: none;
-  background: #f5f5f5;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 18px;
-  color: #999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  z-index: 10;
-}
-.modal-close:hover { background: var(--active-color, #C4788F); color: #fff; }
-.modal-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #222;
-  margin-bottom: 4px;
-  padding-right: 40px;
-}
-.modal-subtitle {
-  color: #999;
-  font-size: 13px;
-  font-weight: 400;
-  margin-bottom: 14px;
-}
-.modal-body {
-  padding: 0 20px 20px;
-}
-
-/* Image Gallery */
-.img-gallery {
-  margin-bottom: 18px;
-}
-.img-gallery-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.img-gallery-row {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 6px;
-}
-.img-gallery-row::-webkit-scrollbar { height: 4px; }
-.img-gallery-row::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
-.gallery-item {
-  flex-shrink: 0;
-  width: 200px;
-  height: 160px;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  background: #f5f5f5;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-  transition: all 0.2s;
-}
-.gallery-item:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.gallery-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.gallery-placeholder {
-  width: 200px;
-  height: 160px;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: rgba(255,255,255,0.8);
-  font-size: 13px;
-  gap: 6px;
-  flex-shrink: 0;
-}
-.gallery-placeholder .ph-icon { font-size: 28px; opacity: 0.5; }
-.gallery-placeholder .ph-text { font-size: 12px; }
-.gallery-label {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  padding: 6px 10px;
-  background: linear-gradient(transparent, rgba(0,0,0,0.5));
-  color: #fff;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-/* Params */
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 18px;
-}
-.detail-item {
-  background: #f8f9fa;
-  padding: 8px 12px;
-  border-radius: 8px;
-}
-.detail-item.full { grid-column: span 3; }
-.detail-item label {
-  font-size: 10px;
-  color: #aaa;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  display: block;
-  margin-bottom: 2px;
-}
-.detail-item value {
-  font-size: 13px;
-  color: #333;
-  font-weight: 500;
-}
-
-/* Scripts Section */
-.scripts-section {
-  margin-bottom: 18px;
-}
-.scripts-section-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-  margin-bottom: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.script-item {
-  background: #f8f9fa;
-  border-radius: 10px;
-  padding: 12px;
-  margin-bottom: 8px;
-  position: relative;
-  border: 1px solid transparent;
-  transition: all 0.2s;
-}
-.script-item:hover { border-color: #FFD6E5; }
-.script-item-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-.script-tag {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 8px;
-  background: var(--tag-bg, #F5E8EC);
-  color: var(--tag-color, #C4788F);
-  font-weight: 500;
-}
-.script-item .copy-btn-small {
-  padding: 4px 10px;
-  background: var(--active-color, #C4788F);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
-}
-.script-item .copy-btn-small:hover { background: #E85A8A; }
-.script-item .copy-btn-small.copied { background: #52c41a; }
-.card-tag-btn {
-  padding: 4px 10px;
-  background: #f5f5f5;
-  border: 1.5px solid #e8e8e8;
-  border-radius: 8px;
-  font-size: 11px;
-  color: #888;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-left: 6px;
-}
-.card-tag-btn:hover {
-  border-color: #999;
-  color: #666;
-}
-.user-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  margin-left: 4px;
-}
-.user-tag.offline { background: #ffebee; color: #c62828; }
-.user-tag.hot { background: #fff3e0; color: #e65100; }
-.user-tag.new { background: #e8f5e9; color: #2e7d32; }
-.user-tag.rec { background: #e3f2fd; color: #1565c0; }
-
-/* Tag Modal */
-.tag-modal-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 400;
-  padding: 20px;
-}
-.tag-modal-overlay.show { display: flex; }
-.tag-modal {
-  background: #fff;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 320px;
-  padding: 20px;
-}
-.tag-modal h3 {
-  font-size: 16px;
-  margin-bottom: 16px;
-}
-.tag-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.tag-option {
-  padding: 8px 16px;
-  border-radius: 12px;
-  border: 1.5px solid #e8e8e8;
-  background: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s;
-}
-.tag-option:hover { border-color: #999; }
-.tag-option.selected {
-  border-color: var(--active-color, #B89098);
-  background: var(--light-color, #F0E8EA);
-  color: var(--active-color, #B89098);
-}
-.tag-modal-footer {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-.tag-modal-footer button {
-  padding: 8px 18px;
-  border-radius: 10px;
-  border: none;
-  font-size: 13px;
-  cursor: pointer;
-}
-.script-text {
-  font-size: 13px;
-  line-height: 1.6;
-  color: #444;
-  white-space: pre-wrap;
-}
-
-/* Toast */
-.toast {
-  position: fixed;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%) translateY(100px);
-  background: #333;
-  color: #fff;
-  padding: 12px 24px;
-  border-radius: 30px;
-  font-size: 14px;
-  z-index: 300;
-  opacity: 0;
-  transition: all 0.3s ease;
-  pointer-events: none;
-}
-.toast.show {
-  transform: translateX(-50%) translateY(0);
-  opacity: 1;
-}
-
-@media (max-width: 640px) {
-  .brand-bar { padding: 8px 12px 0; }
-  .brand-tab { font-size: 13px; padding: 10px 16px; }
-  .grid { grid-template-columns: 1fr; }
-  .filters input { min-width: 100%; }
-  .detail-grid { grid-template-columns: repeat(2, 1fr); }
-  .detail-item.full { grid-column: span 2; }
-  .gallery-item { width: 160px; height: 130px; }
-  .gallery-placeholder { width: 160px; height: 130px; }
-  .header { padding: 0 12px 12px; }
-  .container { padding: 12px; }
-  .series-group { margin-bottom: 24px; }
-}
-</style>
+        /* 其他样式 */
+        .notes {
+            background: #fff; border-radius: 12px; padding: 14px;
+            font-size: 12px; color: #888; line-height: 1.8;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .notes-title { font-weight: 600; color: #3d5a4d; margin-bottom: 6px; font-size: 13px; }
+        .copy-toast {
+            display: none; position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); background: rgba(0,0,0,0.7);
+            color: white; padding: 12px 24px; border-radius: 20px;
+            font-size: 14px; z-index: 1000;
+        }
+        .copy-toast.show { display: block; animation: fadeInOut 2s ease; }
+        @keyframes fadeInOut {
+            0% { opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; }
+        }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 2000;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-box {
+            background: #fff; border-radius: 16px; padding: 28px 24px;
+            max-width: 320px; width: 90%; text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .modal-title { font-size: 17px; font-weight: 600; color: #3d5a4d; margin-bottom: 10px; }
+        .modal-text { font-size: 13px; color: #888; line-height: 1.7; margin-bottom: 20px; }
+        .modal-btn { padding: 10px 32px; background: #7ba7a6; color: white; border: none; border-radius: 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .watermark { position: fixed; bottom: 10px; right: 10px; font-size: 11px; color: rgba(95, 181, 165, 0.3); pointer-events: none; z-index: 9999; }
+    </style>
 </head>
 <body>
-
-<!-- Brand Switch -->
-<div class="brand-bar" id="brandBar">
-  <button class="brand-tab misheng active" onclick="switchBrand('misheng')" id="tabMisheng">
-    弥生
-  </button>
-  <button class="brand-tab jiyang" onclick="switchBrand('jiyang')" id="tabJiyang">
-    极氧
-  </button>
-</div>
-
-<div class="header" id="header">
-  <div class="header-inner">
-    <div class="header-top">
-      <h1 id="pageTitle"><span class="brand-icon">🌸</span> 弥生美瞳 · 花色素材库</h1>
-      <button class="refresh-btn" id="refreshBtn" onclick="loadData(true)">
-        <span class="refresh-icon">🔄</span>
-        <span>刷新</span>
-      </button>
-    </div>
-    <div class="filters">
-      <input type="text" id="search" placeholder="搜索花名..." onkeyup="render()">
-      <select id="seriesFilter" onchange="render()">
-        <option value="">全部系列</option>
-      </select>
-      <select id="colorFilter" onchange="render()">
-        <option value="">全部色系</option>
-      </select>
-      <button class="sort-btn" onclick="openSortModal()" title="调整系列显示顺序">⚙️ 系列排序</button>
-    </div>
-    <div class="period-bar" id="periodBar"></div>
-    <div class="stats">
-      <span id="statText">共 <b id="total">0</b> 款花色，当前显示 <b id="shown">0</b> 款</span>
-      <span class="sync-status" id="syncStatus">⏳ 加载中...</span>
-    </div>
-  </div>
-</div>
-
-<div class="container" id="container">
-  <div class="loading" id="loading">
-    <div class="loading-icon">💫</div>
-    <div style="margin-top:12px;color:#999">正在加载花色数据...</div>
-  </div>
-  <div id="content" style="display:none"></div>
-  <div class="empty" id="empty" style="display:none">
-    <div class="empty-icon">🔍</div>
-    <div>没有找到匹配的花色</div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal" onclick="closeModal(event)">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <button class="modal-close" onclick="closeModal()">×</button>
-      <div class="modal-title" id="mTitle"></div>
-      <div class="modal-subtitle" id="mSubtitle"></div>
-    </div>
-    <div class="modal-body">
-      <!-- 上眼图 -->
-      <div class="img-gallery" id="mEyeGallery" style="display:none">
-        <div class="img-gallery-label">👁️ 上眼效果图</div>
-        <div class="img-gallery-row" id="mEyeImages"></div>
-      </div>
-      <!-- 镜片图 -->
-      <div class="img-gallery" id="mLensGallery" style="display:none">
-        <div class="img-gallery-label">🔍 镜片实拍</div>
-        <div class="img-gallery-row" id="mLensImages"></div>
-      </div>
-      <!-- 参数 -->
-      <div class="detail-grid" id="mGrid"></div>
-      <!-- 话术 -->
-      <div class="scripts-section" id="mScripts" style="display:none">
-        <div class="scripts-section-label">
-          <span>📋 描述话术</span>
-          <span style="font-size:11px;color:#999;font-weight:400">点击复制按钮复制单条</span>
+    <div class="modal-overlay" id="astig-modal">
+        <div class="modal-box">
+            <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+            <div class="modal-title">散光度数过高</div>
+            <div class="modal-text" id="astig-modal-text">
+                您输入的散光度数超过150度，本工具仅支持150度以下散光换算。<br><br>
+                建议咨询专业眼科医生，或验配散光专用隐形眼镜。
+            </div>
+            <button class="modal-btn" onclick="closeModal()">我知道了</button>
         </div>
-        <div id="mScriptsList"></div>
-      </div>
     </div>
-  </div>
-</div>
 
-<div class="toast" id="toast">已复制</div>
+    <div class="watermark" id="watermark">弥生 内部工具</div>
 
-<!-- Series Sort Modal -->
-<div class="sort-modal-overlay" id="sortModal" onclick="closeSortModal(event)">
-  <div class="sort-modal" onclick="event.stopPropagation()">
-    <div class="sort-modal-header">
-      <h3>📋 调整系列显示顺序</h3>
-      <button class="close" onclick="closeSortModal()">×</button>
-    </div>
-    <div class="sort-modal-body" id="sortList"></div>
-    <div class="sort-modal-footer">
-      <button class="btn-cancel" onclick="closeSortModal()">取消</button>
-      <button class="btn-save" onclick="saveSeriesOrder()">保存</button>
-    </div>
-  </div>
-</div>
+    <div class="container">
 
-<!-- Tag Modal -->
-<div class="tag-modal-overlay" id="tagModal" onclick="closeTagModal(event)">
-  <div class="tag-modal" onclick="event.stopPropagation()">
-    <h3 id="tagModalTitle">🏷️ 标记花色</h3>
-    <div class="tag-options" id="tagOptions">
-      <button class="tag-option" data-tag="" onclick="selectTag(this)">无标记</button>
-      <button class="tag-option" data-tag="下架" onclick="selectTag(this)">下架</button>
-      <button class="tag-option" data-tag="热销" onclick="selectTag(this)">热销</button>
-      <button class="tag-option" data-tag="新品" onclick="selectTag(this)">新品</button>
-      <button class="tag-option" data-tag="推荐" onclick="selectTag(this)">推荐</button>
-    </div>
-    <div class="tag-modal-footer">
-      <button class="btn-cancel" onclick="closeTagModal()">取消</button>
-      <button class="btn-save" onclick="saveTag()">保存</button>
-    </div>
-  </div>
-</div>
-
-<script>
-const DATA_URL = null; // 内嵌数据，无需外部文件
-// =================
-
-let ALL_DATA = [];
-let DATA = [];
-let CURRENT_BRAND = 'misheng';
-
-// 内嵌数据（从飞书多维表格导出，共123条）
-const EMBEDDED_DATA = [{"花名":"白月光","品牌":"弥生","系列":"心动调频","色系":"灰色系","直径":14.2,"着色直径":13.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【白月光】雾感清透黑灰，自然融瞳的清冷白月光眼~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"蓝调时分","品牌":"弥生","系列":"心动调频","色系":"蓝色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"蓝调时分：深邃冰感蓝，自带混血感的清冷雾蓝瞳","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"摩卡奶茶","品牌":"弥生","系列":"心动调频","色系":"棕色系","直径":14.2,"着色直径":13.6,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"摩卡奶茶：柔润暖棕调，温柔又日常的妈生感奶茶瞳","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"千禧校花","品牌":"弥生","系列":"心动调频","色系":"灰色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"千禧校花：黑亮扩瞳款，自带水光感的无辜黑亮眼","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"桃气闪闪","品牌":"弥生","系列":"心动调频","色系":"粉色系","直径":14.2,"着色直径":13.7,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"桃气闪闪：甜粉紫带细闪，自带少女感的软萌粉紫瞳","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"全息悸动","品牌":"弥生","系列":"初音未来","色系":"蓝色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"满着色定位片","描述话术":"这款「全息悸动」✨ 葱色光波漫入眼眸，复刻初音未来的清透蓝瞳，自带次元柔光感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"指尖蝶舞","品牌":"弥生","系列":"初音未来","色系":"蓝色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"定位片","描述话术":"这款是蝶翼清透深海蓝瞳，还原公式级二次元灵动眼妆~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"39°巡光","品牌":"弥生","系列":"初音未来","色系":"蓝色系","直径":14.5,"着色直径":14.2,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"不定位，对称高光","描述话术":"39° 巡光・初音款｜清透冷感蓝调 + 对称高光，自带舞台打光感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"爱的无限曲","品牌":"弥生","系列":"初音未来","色系":"棕色系","直径":14.5,"着色直径":14.3,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"定位片，金棕色高光","描述话术":"这款是暖棕琥珀瞳！爱的无限曲自带温柔氛围感，适配初音软萌感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"薄荷微光","品牌":"弥生","系列":"初音未来","色系":"绿色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"不定位，满着色","描述话术":"这款薄荷微光，薄荷青调瞳色，像虚拟舞台上的粼粼碎光~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"落日漫游","品牌":"弥生","系列":"初音未来","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"定位片","描述话术":"这款【落日漫游】清透棕调 + 细腻高光，还原温柔次元眼！","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"虚拟泪光","品牌":"弥生","系列":"初音未来","色系":"黑色系","直径":14.5,"着色直径":14.3,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"定位片","描述话术":"这款是超自然的通透黑瞳 + 细腻高光，还原二次元的纯欲泪光感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"甜心主唱","品牌":"弥生","系列":"初音未来","色系":"粉色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"定位片","描述话术":"【甜心主唱】樱花粉调瞳色，把虚拟偶像的甜酷感揉进眼里~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"乌托邦幻想","品牌":"弥生","系列":"初音未来","色系":"紫色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"定位片","描述话术":"这款是雾紫柔光瞳，像虚拟世界里的浪漫幻梦~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"国民初恋","品牌":"弥生","系列":"心动信号","色系":"其他","直径":14.2,"着色直径":13.3,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"细锁边/有微弱高光","描述话术":"黑色细锁边外圈配上黑灰色有一种水汪汪的、湿漉漉的无辜感，比单纯的黑更灵动，更让人心动~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"转校千金","品牌":"弥生","系列":"心动信号","色系":"其他","直径":14.2,"着色直径":13.7,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"外圈采用黑灰色细锁边，内圈采用深灰色放射性花纹，让花色在放大眼睛的同时更加有混血感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"告白汽水","品牌":"弥生","系列":"心动信号","色系":"其他","直径":14.2,"着色直径":13.6,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"这款是低饱和的蓝灰色调+细闪打造出清澈透亮、自带呼吸感的眼睛。","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"栗栗在逃","品牌":"弥生","系列":"心动信号","色系":"其他","直径":14.2,"着色直径":13.6,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"整体以暖金棕色基底，内圈浅棕色高光使得外圈锁边更佳明显，但过渡自然，实现温柔放大双眼缺不死板","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"蓝朋友","品牌":"弥生","系列":"心动信号","色系":"其他","直径":14.2,"着色直径":13.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"这款深蓝色外圈过渡更加自然，内有细腻花纹点亮眼神！把精致直接刻在瞳孔里，近看才能发现的高级感，让眼睛自带故事感。","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"晚熟游戏","品牌":"弥生","系列":"随便花系列","色系":"灰色系","直径":14.5,"着色直径":14.3,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"黑色细锁边+灰色内圈轻微高光，紫色的细线高光和珠光细闪让花纹设计感更有层次","描述话术":"【晚熟游戏】黑色外圈精致锁边，浅灰底色搭配若隐若现的紫色线条，上眼清冷又灵动，氛围感直接拉满～","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"月光骑士","品牌":"弥生","系列":"随便花系列","色系":"蓝色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"黑色细锁边蓝色对半高光，但是高光比较微弱，不会对眼，高光更有水光感。","描述话术":"【月光骑士】冷调黑蓝交织，外圈深邃锁边，上眼清冷又神秘，宛如月光下的骑士眼眸～","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"暧昧戏法","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"内圈搭配浅灰色对称高光","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"柏林热吻","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"锁边过渡更自然","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"情绪玩家","品牌":"弥生","系列":"随便花系列","色系":"蓝色系","直径":14.2,"着色直径":13.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"高光形成「深 - 中 - 亮」的色彩层次","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"初生玫瑰","品牌":"弥生","系列":"随便花系列","色系":"粉色系","直径":14.2,"着色直径":13.3,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"单高光+细锁边","描述话术":"【初生玫瑰】柔粉调融瞳自然，眼神自带温柔滤镜~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"月光恋人","品牌":"弥生","系列":"随便花系列","色系":"蓝色系","直径":14.2,"着色直径":13.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"三高光+细锁边","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"南韩千金","品牌":"弥生","系列":"随便花系列","色系":"蓝色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"无锁边","描述话术":"恰到好处的蓝，既不张扬又极具辨识度，日常戴显温柔，化妆戴更出彩，适配各种风格妆容哟~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"冷雾茶黑","品牌":"弥生","系列":"随便花系列","色系":"黑色系","直径":14.5,"着色直径":14.2,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"无高光+粗锁边融瞳","描述话术":"宝宝~这款冷雾茶黑的看下哟，透透的大直径眼珠珠～戴上秒变无辜大眼，黑色超自然显幼态~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"笨蛋美女","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":13.8,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"整圈高光+细锁边融瞳","描述话术":"宝宝~推荐这款笨蛋美女的，日常通勤必买单品 又纯又欲水光瞳，很温柔细腻","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"爽文女主","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"金粉款+细锁边","描述话术":"这款棕瞳增大双眼效果明显，但又不会夸张突兀，让眼睛瞬间有神又灵动~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"南洋水珠pro","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"对称双高光+细锁边","描述话术":"【南洋水珠】琥珀瞳仁是最近的新宠，通透少女感十足~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"天菜女友","品牌":"弥生","系列":"随便花系列","色系":"灰色系","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"对称双高光+细锁边","描述话术":"清冷美女必备款【天菜女友】~绿色宝石眼珠珠超推荐！","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"水星记","品牌":"弥生","系列":"随便花系列","色系":"蓝色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"对称双高光+细锁边","描述话术":"宝宝~推荐这款水星记的，这个蓝色的透度真的好绝！超火的一款蓝色美瞳，相信宝贝戴了一定会爱上~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"成为自己","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":13.82,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"单高光+细锁边","描述话术":"【成为自己】，暖棕调融瞳自然，眼神温柔又有气场","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"半熟幻想","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":13.6,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"无高光+细锁边","描述话术":"随便花新品上线\n半熟幻想 14.5mm","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"蓝岛时刻","品牌":"弥生","系列":"随便花系列","色系":"蓝色系","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"对称双细高光+细锁边","描述话术":"深邃牛仔蓝\n蓝岛时刻 14.5mm","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"富婆人生","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":13.73,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"单高光+细锁边","描述话术":"【富婆人生】清冷灰棕调，眼神贵气又吸睛","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"恋爱循环","品牌":"弥生","系列":"随便花系列","色系":"蓝色系","直径":14.5,"着色直径":13.77,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"对称双高光+细锁边","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"换乘恋爱","品牌":"弥生","系列":"随便花系列","色系":"黑色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"对称双细高光+细锁边","描述话术":"天菜同款黑色【换乘恋爱】，独特的花纹百搭自然款~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"巴洛克玫瑰","品牌":"弥生","系列":"随便花系列","色系":"紫色系","直径":14.5,"着色直径":13.95,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"无高光+细锁边融瞳","描述话术":"【巴洛克玫瑰】少女无法拒绝的梦幻紫~紫色超温柔有韵味","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"航海日记","品牌":"弥生","系列":"随便花系列","色系":"蓝色系","直径":14.5,"着色直径":13.95,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"无高光+细锁边融瞳","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"小野猫","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"整圈高光+细锁边+微虹膜","描述话术":"宝宝~这款【小野猫】可爱又灵动的棕色大直径，日常通勤百搭款~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"清晨解药","品牌":"弥生","系列":"随便花系列","色系":"灰色系","直径":14.5,"着色直径":13.8,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"整圈高光+细锁边融瞳","描述话术":"【清晨解药】甜酷灰色，百搭日常一丢丢混血","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"奶油黑客","品牌":"弥生","系列":"随便花系列","色系":"黑色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【奶油黑客】，黑调融细闪，清透自然，眼神自带雾面滤镜~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"反骨甜心","品牌":"弥生","系列":"随便花系列","色系":"紫色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"浅紫调自带梦幻滤镜，像把薰衣草花海揉进眼眸， 上眼清透又神秘，仿佛藏着一整片银河，温柔中带点清冷疏离感，妥妥的人间紫水晶特效~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"冷雾茶棕","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":13.8,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"冷雾茶棕 Dia:14.5mm\n好自然的琥珀棕瞳","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"偷藏月光","品牌":"弥生","系列":"随便花系列","色系":"粉色系","直径":14.5,"着色直径":14.3,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"温柔粉棕调，上眼清透又空灵，自带柔光滤镜，仿佛藏着一汪清甜的晨露，无辜感拉满，妥妥的人间洋娃娃花色～","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"落日橘子海","品牌":"弥生","系列":"随便花系列","色系":"棕色系","直径":14.5,"着色直径":14.2,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【落日橘子海】融瞳自然，眼神自带温柔氛围感","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"妮妮千金","品牌":"弥生","系列":"女高系列","色系":"粉色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"双高光","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"造梦乐园","品牌":"弥生","系列":"女高系列","色系":"灰色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"深灰色外圈+浅灰色双段高光","描述话术":"这款美瞳青灰调裹着雾感，戴上感觉清透又带点疏离感，大直径扩瞳自带清冷滤镜，是一眼就沦陷的 “青灰雾感眼”✨","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"气泡葡萄","品牌":"弥生","系列":"女高系列","色系":"紫色系","直径":14.5,"着色直径":13.8,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"外圈黑色细锁边+内圈紫色半高光","描述话术":"这款深紫色调的美瞳，比自然款更魅惑 比混血款更温柔，戴上是一眼就心动的 “葡萄冻冻眼”✨~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"黑莓缪斯","品牌":"弥生","系列":"女高系列","色系":"黑色系","直径":14.2,"着色直径":13.67,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"这款花色是黑色锁边+黑灰调内圈，无声放大双眼，眼神立刻变得清澈有神，像天生的好底子，自然到老师、上司都看不出你戴了美瞳！","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"她的梨涡","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.2,"着色直径":13.4,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"小直径终于有棕色自然款啦，可配合日常淡妆、伪素颜~日常通勤、上学、见长辈都可戴~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"我喜欢你","品牌":"弥生","系列":"女高系列","色系":"灰色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"融瞳单高光+细锁边","描述话术":"适合淡颜系的新品眼珠【我喜欢ni】","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"你的名字","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.5,"着色直径":13.88,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"轻微单高光(不对眼）+细锁边","描述话术":"宝子~推荐这款【ni的名字】温柔到骨子里的初恋眼，日常通勤必买单品~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"校花指南","品牌":"弥生","系列":"女高系列","色系":"蓝色系","直径":14.5,"着色直径":14.06,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"融瞳单高光+细锁边","描述话术":"【校花指南】清冷蓝调，眼神亮眼又吸睛","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"汪汪队","品牌":"弥生","系列":"女高系列","色系":"黑色系","直径":14.2,"着色直径":13.7,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"无高光+粗锁边融瞳","描述话术":"水润润乖乖女必备，招牌花色清透小奶黑，喜欢不要错过哟~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"夜与法兰西","品牌":"弥生","系列":"女高系列","色系":"黑色系","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"无高光+粗锁边","描述话术":"这款【夜与法兰西】，洋娃娃专属漫画大眼哟","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"元气女高","品牌":"弥生","系列":"女高系列","色系":"灰色系","直径":14.2,"着色直径":13.4,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"轻微整圈高光+细锁边","描述话术":"元气感满满~氛围感混血珠珠","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"少女心事","品牌":"弥生","系列":"女高系列","色系":"紫色系","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"无高光+粗锁边","描述话术":"少女心事14.5mm，低饱和度紫灰色~上眼秒变温柔美少女~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"千禧莓莓","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"整圈高光+细锁边","描述话术":"宝子~看下这款又泰又嗲的眼珠珠-千禧莓莓","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"甜断记忆","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"轻微整圈高光+细锁边","描述话术":"甜断记忆\n扑面而来的少女气息，粉棕色让你的妆容更出彩，日常不化妆也可以戴的自然款","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"甜宠学妹","品牌":"弥生","系列":"女高系列","色系":"粉色系","直径":14.2,"着色直径":12.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"戴上就是超级温柔的粉紫色，14.20mm的直径自然放大双眼~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"冰岛日记","品牌":"弥生","系列":"女高系列","色系":"黑色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【冰岛日记】颜色是浓郁醇厚的巧克力棕，自然又百搭，素颜戴毫无压力，轻松打造妈生感美眸，适配各种妆容风格，日常通勤、约会出游都超合适哒~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"伦敦碎片","品牌":"弥生","系列":"女高系列","色系":"灰色系","直径":14.5,"着色直径":13.92,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"弥生新花色来啦【伦敦碎片】，显色又有漫画感~尊嘟好看~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"加州校园","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.5,"着色直径":13.8,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"宝子~这款美瞳一戴，整个气质都提升了好几个档次，清冷又高级~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"暗恋无果","品牌":"弥生","系列":"女高系列","色系":"绿色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【暗恋无果】森系墨绿调，融瞳自然，眼神清冷又勾人","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"甜蜜暗号","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"浅棕主调温柔又清透，眼里藏着蜜糖般的清甜 ，自带初恋感 buff ，日常又纯欲，谁戴谁是人间水蜜桃～","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"心动信号","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【心动信号】清透又带点朦胧雾感，上眼瞬间眼神会 “发电”，温柔钓系氛围拉满，谁戴谁是纯欲心动制造机~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"初恋小事","品牌":"弥生","系列":"女高系列","色系":"灰色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"上眼水灵灵的小鹿眼，有种清纯女高的幼态感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"窗外樱花","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【窗外樱花】柔棕调融瞳自然，眼神温柔似樱花","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"等你下课","品牌":"弥生","系列":"女高系列","色系":"棕色系","直径":14.5,"着色直径":14.3,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【等你下课】暖棕带细闪，眼神温柔又灵动","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"闪闪自信","品牌":"弥生","系列":"女高系列","色系":"蓝色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"单高光+细锁边","描述话术":"【闪闪自信】戴上后眼睛瞬间有了深邃感，仿佛藏着无尽故事，自然又好看","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"恶女千金","品牌":"弥生","系列":"少女漫系列","色系":"混血系","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"红棕调超吸睛，眼神又 A 又飒","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"魔女眼泪","品牌":"弥生","系列":"少女漫系列","色系":"蓝色系","直径":14.5,"着色直径":13.7,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"水漾狂想曲","品牌":"弥生","系列":"少女漫系列","色系":"蓝色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"超推荐的【水漾狂想曲】，清新蓝绿搭配~买回去出去玩拍照超有氛围哒~90%客户已购的大爆款！","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"蓝色圆舞曲","品牌":"弥生","系列":"少女漫系列","色系":"蓝色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"对称双高光+粗锁边","描述话术":"漫画感眼珠珠【蓝色圆舞曲】，上眼一秒拥有滤镜般水光大眼睛~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"无人区玫瑰","品牌":"弥生","系列":"少女漫系列","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"断货款【无人区玫瑰】仙气飘飘的粉色瞳~增添温柔情调","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"在逃公主","品牌":"弥生","系列":"少女漫系列","色系":"粉色系","直径":14.2,"着色直径":13.36,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【在逃公主】粉紫调，眼神温柔似童话","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"在逃公主pro","品牌":"弥生","系列":"少女漫系列","色系":"其他","直径":14.5,"着色直径":14.35,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"心动降临","品牌":"弥生","系列":"少女漫系列","色系":"粉色系","直径":14.5,"着色直径":13.83,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"粉紫色新品花色，叫姐同款心动降临，好有氛围感的眼珠珠~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"月光鸣奏曲","品牌":"弥生","系列":"少女漫系列","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"新品琥珀色棕色瞳~叫姐同款花色","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"爱神降临","品牌":"弥生","系列":"少女漫系列","色系":"棕色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"微弱双高光+粗锁边融瞳","描述话术":"这款【爱神降临】纯欲风~大直径超可爱百搭的款","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"月亮危机","品牌":"弥生","系列":"少女漫系列","色系":"粉色系","直径":14.5,"着色直径":13.8,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"微弱双高光+粗锁边融瞳+有金粉","描述话术":"黑色美瞳推荐这款【月亮危机】，婴儿般透亮黑色大眼，水灵透亮~上眼不呆板","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"龙颜芭比","品牌":"弥生","系列":"少女漫系列","色系":"粉色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"整圈高光+粗锁边融瞳","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"星光降落","品牌":"弥生","系列":"少女漫系列","色系":"混血系","直径":14.5,"着色直径":13.8,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"新品星光降落..仿佛眼里有星河~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"指尖魔法","品牌":"弥生","系列":"少女漫系列","色系":"棕色系","直径":14.5,"着色直径":14.2,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"淡颜宝宝的加分神器，新手盲选不出错的棕色水珠款，人畜无害乖乖女","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"虚空蔷薇","品牌":"弥生","系列":"少女漫系列","色系":"紫色系","直径":14.5,"着色直径":14.29,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"自带清冷感，超级显白的紫色玻璃珠，深瞳也完全不用担心！","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"仲夏夜探戈","品牌":"弥生","系列":"少女漫系列","色系":"紫色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"水漾同款紫色【仲夏夜探戈】，神秘柔紫调，一戴自带梦幻滤镜，眼神像藏了仲夏夜星光，纯欲又魅惑~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"玛丽皇后","品牌":"弥生","系列":"少女漫系列","色系":"紫色系","直径":14.5,"着色直径":14.2,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【玛丽皇后】，神秘柔紫调，自带高贵滤镜，眼神秒变优雅宫廷风，纯欲又贵气","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"超大宝宝棕","品牌":"弥生","系列":"少女漫系列","色系":"棕色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"“超大宝宝棕” ，暖棕调，眼神澄澈又显乖","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"超大渣渣黑","品牌":"弥生","系列":"少女漫系列","色系":"黑色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【超大渣渣黑】，一戴秒变无辜狗狗眼，纯欲又扩瞳，眼神直接锁住心动感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"超大奶芙芙","品牌":"弥生","系列":"少女漫系列","色系":"棕色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"“超大奶芙芙”温柔奶棕调。眼神像裹了层棉花糖，纯欲感直接拉满~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"超大椰椰灰","品牌":"弥生","系列":"少女漫系列","色系":"灰色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"“超大椰椰灰”清冷灰调自带松弛感，一戴秒变混血感，眼神像椰灰拿铁般高级，纯欲又清冷~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"超大酥酥绿","品牌":"弥生","系列":"少女漫系列","色系":"粉色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"“超大酥酥绿” 清冷绿调自带清透感,一戴秒变空灵猫眼，眼神像藏了片森林，纯欲又高级~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"超大荧光水母","品牌":"弥生","系列":"人鱼系列","色系":"棕色系","直径":14.5,"着色直径":14.5,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"棕色细锁边+月牙高光","描述话术":"深棕调如清透琥珀，上眼宛如把深海水母的荧光感揉进眸中，清透又自带柔光，大直径扩瞳效果绝绝子~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"偷吻珊瑚","品牌":"弥生","系列":"人鱼系列","色系":"粉色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"细锁边+大黑片打底+粉色大小对称高光","描述话术":"这款花色漫画扩瞳娃感超浓，是网版砂糖粉底的同款，戴上像是在眼睛里打了腮红~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"钓系美人","品牌":"弥生","系列":"人鱼系列","色系":"紫色系","直径":14.5,"着色直径":14.2,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"深紫色细锁边+紫灰色调内圈","描述话术":"宝子~这款花色是饱和度比较低的紫色，想要有些个性、但是又不突兀的花色\n特点是紫色显白、融瞳~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"绝情玫瑰烧","品牌":"弥生","系列":"人鱼系列","色系":"黑色系","直径":14.5,"着色直径":13.96,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"“绝情玫瑰烧” ，红棕调，眼神又 A 又魅惑","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"鲛人泪滴","品牌":"弥生","系列":"人鱼系列","色系":"棕色系","直径":14.5,"着色直径":14.13,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"新品人鱼系列半年抛＃鲛人泪滴","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"深海之泪","品牌":"弥生","系列":"人鱼系列","色系":"蓝色系","直径":14.5,"着色直径":14.12,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"新品人鱼系列半年抛＃深海之泪","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"海豚恋人","品牌":"弥生","系列":"人鱼系列","色系":"棕色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"新品人鱼系列半年抛＃海豚恋人","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"雾面珍珠","品牌":"弥生","系列":"人鱼系列","色系":"灰色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"新品人鱼系列半年抛＃雾面珍珠","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"贝母光晕","品牌":"弥生","系列":"人鱼系列","色系":"棕色系","直径":14.5,"着色直径":14.2,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"很减龄可爱日常百搭款【贝母光晕】","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"落日熔金","品牌":"弥生","系列":"人鱼系列","色系":"棕色系","直径":14.5,"着色直径":14.15,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"新品人鱼系列半年抛＃落日熔金\n「金棕瞳色+微闪细粉=狙击男神利器」","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"冰摇海葡萄","品牌":"弥生","系列":"人鱼系列","色系":"紫色系","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"新品人鱼系列半年抛＃冰瑶海葡萄","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"黄油小熊","品牌":"弥生","系列":"happy系列","色系":"其他","直径":14.5,"着色直径":14.15,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"快乐小狗","品牌":"弥生","系列":"happy系列","色系":"其他","直径":14.5,"着色直径":14.15,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"松林小鹿","品牌":"弥生","系列":"happy系列","色系":"其他","直径":14.5,"着色直径":13.97,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"美高舞会","品牌":"弥生","系列":"happy系列","色系":"其他","直径":14.5,"着色直径":14.13,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"蜜糖戚风","品牌":"弥生","系列":"happy系列","色系":"其他","直径":14.2,"着色直径":13.33,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"脆皮圣代","品牌":"弥生","系列":"happy系列","色系":"其他","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"纯白冬季","品牌":"弥生","系列":"happy系列","色系":"其他","直径":14.5,"着色直径":13.9,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"记忆吐司","品牌":"弥生","系列":"花厨小熊系列","色系":"棕色系","直径":14.5,"着色直径":13.8,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"环形高光","描述话术":"","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"曲奇饼派对","品牌":"弥生","系列":"花厨小熊系列","色系":"棕色系","直径":14.5,"着色直径":14.05,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"这款是暖棕焦糖棕调+金闪糖霜 曲奇饼般的甜酷鎏金瞳~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"停止幻想","品牌":"弥生","系列":"花厨小熊系列","色系":"灰色系","直径":14.5,"着色直径":13.7,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【停止幻想】灰蓝花色+冰晶感纹理 很有银河感的赛博冰川瞳","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"黄油流心","品牌":"弥生","系列":"花厨小熊系列","色系":"棕色系","直径":14.5,"着色直径":13.7,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【黄油流心】\n黄油暖棕渐变+鎏金细闪 温柔又很特别的滤镜感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"奶油噗噗","品牌":"弥生","系列":"花厨小熊系列","色系":"紫色系","直径":14.5,"着色直径":14.2,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【奶油噗噗】柔黑调融瞳自然，眼神软萌又通透","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"灰熊奶霜","品牌":"弥生","系列":"花厨小熊系列","色系":"黑色系","直径":14.5,"着色直径":14,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【灰熊奶霜】清冷灰调，眼神通透又高级","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"牛仔布偶","品牌":"弥生","系列":"花厨小熊系列","色系":"蓝色系","直径":14.5,"着色直径":14.1,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【牛仔布偶】深邃黑调，眼神慵懒又吸睛","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"偷心布朗尼","品牌":"弥生","系列":"花厨小熊系列","色系":"棕色系","直径":14.5,"着色直径":14.12,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【偷心布朗尼】柔棕色调超绝，14.5mm 直径自然放大双眼，上眼宛如天生琉璃瞳持久水润，一键拿捏温柔心动感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"快乐小狗","品牌":"弥生","系列":"花厨小熊系列","色系":"黑色系","直径":14.5,"着色直径":14.15,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"【快乐小狗】纯黑色基底+渐变星空灰 扩瞳感的黑曜石狗狗瞳","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""},{"花名":"黄油小熊","品牌":"弥生","系列":"花厨小熊系列","色系":"棕色系","直径":14.5,"着色直径":14.15,"基弧":8.6,"含水量":38,"透氧量":24.7,"高光":"","描述话术":"弥生美瞳新品 花厨小熊-【黄油小熊】，大直径打造清纯无辜感~","抛期":"半年抛","材质":"水凝胶","上眼图":"","镜片实图":""}];
-
-
-const BRAND_CONFIG = {
-  misheng: {
-    name: '弥生',
-    tag: '水凝胶',
-    icon: '🌸',
-    color: '#B89098',
-    lightColor: '#F0E8EA',
-    borderColor: '#D8C8CC'
-  },
-  jiyang: {
-    name: '极氧',
-    tag: '硅水凝胶',
-    icon: '💎',
-    color: '#6B8FA8',
-    lightColor: '#E8F0F4',
-    borderColor: '#C0D0D8'
-  }
-};
-
-const SERIES_CONFIG = {
-  '心动调频': { icon: '🎵', color: '#C9A9B6' },
-  '初音未来': { icon: '🎵', color: '#9BB5CE' },
-  '心动信号': { icon: '💌', color: '#B8A9A1' },
-  '随便花系列': { icon: '🌸', color: '#A8C5B5' },
-  '女高系列': { icon: '🎀', color: '#D4B5A8' },
-  '少女漫系列': { icon: '💗', color: '#C4A9B8' },
-  '人鱼系列': { icon: '🧜', color: '#A5C4C9' },
-  'happy系列': { icon: '🌟', color: '#C9C4A8' },
-  '花厨小熊系列': { icon: '🐻', color: '#B8A88A' },
-  '极氧日抛': { icon: '💎', color: '#8BA4BE' }
-};
-
-const colorMap = {
-  '棕色系': '#A08060',
-  '灰色系': '#999999',
-  '粉色系': '#C9A9B6',
-  '蓝色系': '#8BA4BE',
-  '紫色系': '#A890B0',
-  '绿色系': '#8BA888',
-  '黑色系': '#666666',
-  '混血系': '#B09880',
-  '其他': '#A0A0A0'
-};
-  '蓝色系': '#4682B4',
-  '粉色系': '#FF69B4',
-  '紫色系': '#9370DB',
-  '黑色系': '#333333',
-  '绿色系': '#2E8B57',
-  '混血系': '#D2691E',
-  '其他': '#999999'
-};
-
-const BRAND_PERIODS = {
-  misheng: [
-    { value: '', label: '全部' },
-    { value: '半年抛', label: '半年抛' },
-    { value: '日抛', label: '日抛' }
-  ],
-  jiyang: [
-    { value: '', label: '全部' },
-    { value: '季抛', label: '季抛' },
-    { value: 'youhoo日抛', label: 'youhoo日抛' },
-    { value: '极氧日抛', label: '极氧日抛' }
-  ]
-};
-
-let CURRENT_PERIOD = '';
-
-function switchBrand(brand) {
-  CURRENT_BRAND = brand;
-  CURRENT_PERIOD = '';
-  const cfg = BRAND_CONFIG[brand];
-  
-  document.getElementById('tabMisheng').classList.toggle('active', brand === 'misheng');
-  document.getElementById('tabJiyang').classList.toggle('active', brand === 'jiyang');
-  
-  document.getElementById('pageTitle').innerHTML = `<span class="brand-icon">${cfg.icon}</span> ${cfg.name}美瞳 · 花色素材库`;
-  document.documentElement.style.setProperty('--active-color', cfg.color);
-  document.documentElement.style.setProperty('--tag-bg', cfg.lightColor);
-  document.documentElement.style.setProperty('--tag-color', cfg.color);
-  document.documentElement.style.setProperty('--tag-border', cfg.borderColor);
-  
-  // 重置筛选
-  document.getElementById('search').value = '';
-  
-  // 加载已保存的系列排序
-  CURRENT_SORT_ORDER = [];
-  loadSeriesOrder();
-  
-  // 渲染抛期分类
-  renderPeriodPills();
-  initFilters();
-  render();
-}
-
-function renderPeriodPills() {
-  const bar = document.getElementById('periodBar');
-  const periods = BRAND_PERIODS[CURRENT_BRAND] || [];
-  bar.innerHTML = periods.map(p => `
-    <button class="period-pill ${CURRENT_PERIOD === p.value ? 'active' : ''}" 
-            onclick="setPeriod('${p.value}')">${p.label}</button>
-  `).join('');
-}
-
-function setPeriod(val) {
-  CURRENT_PERIOD = val;
-  renderPeriodPills();
-  render();
-}
-
-async function loadData(isManual = false) {
-  const btn = document.getElementById('refreshBtn');
-  const status = document.getElementById('syncStatus');
-  const loading = document.getElementById('loading');
-  const content = document.getElementById('content');
-  
-  if (isManual) {
-    btn.classList.add('spinning');
-    status.textContent = '⏳ 刷新中...';
-  }
-  
-  try {
-    // 使用内嵌数据
-    ALL_DATA = EMBEDDED_DATA;
-    
-    status.textContent = '✅ ' + new Date().toLocaleTimeString('zh-CN') + ' 已加载';
-    status.className = 'sync-status ok';
-    loading.style.display = 'none';
-    content.style.display = '';
-    
-    initFilters();
-    render();
-    
-    if (isManual) showToast('数据已更新！共 ' + ALL_DATA.length + ' 款');
-  } catch (err) {
-    console.error(err);
-    status.textContent = '❌ 加载失败';
-    status.className = 'sync-status error';
-    if (isManual) showToast('刷新失败: ' + err.message);
-    loading.innerHTML = '<div style="font-size:40px">😿</div><div style="margin-top:12px;color:#999">数据加载失败<br>请刷新页面重试</div>';
-  } finally {
-    btn.classList.remove('spinning');
-  }
-}
-
-function initFilters() {
-  const brandData = ALL_DATA.filter(d => d.品牌 === BRAND_CONFIG[CURRENT_BRAND].name);
-  const series = [...new Set(brandData.map(d => d.系列).filter(Boolean))].sort();
-  const colors = [...new Set(brandData.map(d => d.色系).filter(Boolean))].sort();
-  
-  const sSel = document.getElementById('seriesFilter');
-  const cSel = document.getElementById('colorFilter');
-  const curS = sSel.value;
-  const curC = cSel.value;
-  
-  sSel.innerHTML = '<option value="">全部系列</option>';
-  cSel.innerHTML = '<option value="">全部色系</option>';
-  series.forEach(s => sSel.add(new Option(s, s)));
-  colors.forEach(c => cSel.add(new Option(c, c)));
-  sSel.value = curS;
-  cSel.value = curC;
-}
-
-function render() {
-  const q = document.getElementById('search').value.trim().toLowerCase();
-  const s = document.getElementById('seriesFilter').value;
-  const c = document.getElementById('colorFilter').value;
-  const brandName = BRAND_CONFIG[CURRENT_BRAND].name;
-  
-  DATA = ALL_DATA.filter(d => d.品牌 === brandName);
-  
-  const filtered = DATA.filter(d => {
-    const matchQ = !q || d.花名?.toLowerCase().includes(q) || d.系列?.toLowerCase().includes(q);
-    const matchS = !s || d.系列 === s;
-    const matchC = !c || d.色系 === c;
-    // 抛期过滤
-    let matchP = true;
-    if (CURRENT_PERIOD) {
-      if (CURRENT_BRAND === 'jiyang' && (CURRENT_PERIOD === 'youhoo日抛' || CURRENT_PERIOD === '极氧日抛')) {
-        matchP = d.系列 === CURRENT_PERIOD;
-      } else {
-        matchP = d.抛期 === CURRENT_PERIOD;
-      }
-    }
-    return matchQ && matchS && matchC && matchP;
-  });
-  
-  document.getElementById('total').textContent = DATA.length;
-  document.getElementById('shown').textContent = filtered.length;
-  
-  const content = document.getElementById('content');
-  const empty = document.getElementById('empty');
-  
-  if (filtered.length === 0) {
-    content.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
-  empty.style.display = 'none';
-  
-  // Group by series
-  const bySeries = {};
-  filtered.forEach(d => {
-    const series = d.系列 || '未分类';
-    if (!bySeries[series]) bySeries[series] = [];
-    bySeries[series].push(d);
-  });
-  
-  const seriesOrder = CURRENT_SORT_ORDER.length > 0 ? CURRENT_SORT_ORDER : Object.keys(SERIES_CONFIG);
-  const sortedSeries = Object.keys(bySeries).sort((a, b) => {
-    const ia = seriesOrder.indexOf(a);
-    const ib = seriesOrder.indexOf(b);
-    if (ia !== -1 && ib !== -1) return ia - ib;
-    if (ia !== -1) return -1;
-    if (ib !== -1) return 1;
-    return a.localeCompare(b);
-  });
-  
-  content.innerHTML = sortedSeries.map(series => {
-    const items = bySeries[series];
-    const sc = SERIES_CONFIG[series] || { icon: '✨', color: '#999' };
-    return `
-      <div class="series-group">
-        <div class="series-header">
-          <div class="series-icon" style="background:${sc.color}20;color:${sc.color}">${sc.icon}</div>
-          <div class="series-name">${series}<span class="series-count">${items.length} 款</span></div>
+        <div class="brand-switch">
+            <button class="brand-btn active" onclick="switchBrand('弥生')">弥生</button>
+            <button class="brand-btn" onclick="switchBrand('极氧')">极氧</button>
         </div>
-        <div class="grid">
-          ${items.map(d => renderCard(d)).join('')}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
 
-function renderCard(d) {
-  const seriesConfig = SERIES_CONFIG[d.系列] || { icon: '✨', color: '#999' };
-  const seriesColor = seriesConfig.color;
-  const eyeImgs = d.上眼图 ? (Array.isArray(d.上眼图) ? d.上眼图 : [d.上眼图]).filter(Boolean) : [];
-  const hasImg = eyeImgs.length > 0;
-  
-  // 用户标记
-  const userTag = getUserTag(d.花名);
-  let userTagHtml = '';
-  if (userTag) {
-    const tagClass = userTag === '下架' ? 'offline' : (userTag === '新品' ? 'new' : (userTag === '热销' ? 'hot' : 'rec'));
-    userTagHtml = `<span class="user-tag ${tagClass}">${userTag}</span>`;
-  }
-  
-  // 状态标签
-  let statusTag = '';
-  if (d.状态) {
-    const statusClass = d.状态 === '下架' ? 'offline' : (d.状态 === '新品' ? 'new' : 'hot');
-    statusTag = `<span class="tag tag-status ${statusClass}">${d.状态}</span>`;
-  }
-  
-  // 复制参数文本
-  const paramsText = `${d.花名} | ${d.系列} | ${d.色系} | 直径${d.直径}mm | 抛期${d.抛期} | 材质${d.材质} | 基弧${d.基弧}mm | 含水量${d.含水量}% | 透氧量${d.透氧量}Dk/t`;
-  
-  const imgHtml = hasImg
-    ? `<img src="${eyeImgs[0]}" alt="${d.花名}" loading="lazy" onerror="this.style.display='none';this.parentElement.innerHTML='<div class=\\'card-img-placeholder\\' style=\\'background:${seriesColor}\\'><div class=\\'placeholder-icon\\'>👁️</div><div class=\\'placeholder-name\\'>${d.花名}</div><div class=\\'placeholder-tag\\'>${d.色系||'未分类'}</div></div>'">
-       ${eyeImgs.length > 1 ? `<div class="img-count">+${eyeImgs.length - 1}</div>` : ''}`
-    : `<div class="card-img-placeholder" style="background:${seriesColor}">
-        <div class="placeholder-icon">👁️</div>
-        <div class="placeholder-name">${d.花名}</div>
-        <div class="placeholder-tag">${d.色系 || '未分类'}</div>
-      </div>`;
-  
-  return `
-    <div class="card">
-      <div class="card-img" onclick='openModal(${JSON.stringify(d).replace(/'/g, "\\'")})'>${imgHtml}</div>
-      <div class="card-info">
-        <div class="card-name" onclick='openModal(${JSON.stringify(d).replace(/'/g, "\\'")})'>
-          <span>${d.花名}${userTagHtml}</span>
-          <span class="diameter">${d.直径}mm</span>
+        <div class="brand-header">
+            <div class="brand-name" id="brandName">弥生</div>
         </div>
-        <div class="card-tags" onclick='openModal(${JSON.stringify(d).replace(/'/g, "\\'")})'>
-          <span class="tag tag-series">${d.系列 || '未分类'}</span>
-          <span class="tag tag-color" style="background:${seriesColor}">${d.色系 || '其他'}</span>
-          ${statusTag}
+
+        <div class="clear-row">
+            <button class="clear-btn" onclick="clearAll()">🗑️ 清空</button>
         </div>
-        <div class="card-actions">
-          <button class="card-copy-btn" onclick="copyCardParams(this, '${paramsText.replace(/'/g, "\\'")}');event.stopPropagation();">📋 复制参数</button>
-          <button class="card-tag-btn" onclick="openTagModal('${d.花名.replace(/'/g, "\\'")}');event.stopPropagation();">🏷️ 标记</button>
+
+        <!-- 截图识别折叠 -->
+        <div class="ocr-fold" id="ocrFold">
+            <div class="ocr-fold-header" onclick="toggleOCR()">
+                <span class="ocr-fold-title">📷 截图识别度数 <span style="font-size:11px;color:#999;font-weight:normal;margin-left:4px;">⚠️ 验光单识别不稳定，建议手动输入</span></span>
+                <span class="ocr-fold-arrow" id="ocrArrow">▼</span>
+            </div>
+            <div class="ocr-fold-body" id="ocrFoldBody">
+                <div class="ocr-fold-inner">
+                    <div class="ocr-upload" id="ocrUpload">
+                        <div class="ocr-icon">📸</div>
+                        <div class="ocr-text">
+                            <strong>点击上传</strong> 或拖拽图片<br>
+                            也支持 <strong>Ctrl+V</strong> 粘贴截图
+                        </div>
+                        <input type="file" class="ocr-input" id="ocrInput" accept="image/*">
+                    </div>
+                    <div class="ocr-preview" id="ocrPreview">
+                        <img id="ocrPreviewImg" alt="预览">
+                    </div>
+                    <div class="ocr-status" id="ocrStatus"></div>
+                    <div class="ocr-raw-text" id="ocr-raw-text"></div>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <!-- 快速输入框 -->
+        <div style="margin: 12px 0;">
+            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">⚡ 快速输入（粘贴文字/数字自动填充）</div>
+            <input type="text" id="quickInput" placeholder="如：550 75 600 50 或 右眼250 散光100" 
+                style="width:100%;padding:10px 12px;border:1px solid #d0ddd8;border-radius:8px;font-size:14px;"
+                onpaste="handleQuickPaste(event)">
+        </div>
+
+        <!-- 左右眼并排 -->
+        <div class="eyes-row">
+            <div class="eye-card">
+                <div class="eye-card-title">👁️ 右眼</div>
+                <div class="eye-input-row">
+                    <label>近视</label>
+                    <button class="btn-minus" onclick="adjust('r-myopia', -25)">−</button>
+                    <input type="number" class="degree-input" id="r-myopia" value="0" onchange="calculate()">
+                    <button class="btn-plus" onclick="adjust('r-myopia', 25)">+</button>
+                </div>
+                <div class="eye-input-row">
+                    <label>散光</label>
+                    <button class="btn-minus" onclick="adjust('r-astigmatism', -25)">−</button>
+                    <input type="number" class="degree-input" id="r-astigmatism" value="0" onchange="calculate()">
+                    <button class="btn-plus" onclick="adjust('r-astigmatism', 25)">+</button>
+                </div>
+                <div class="eye-result">建议 <span id="r-result">0</span> 度</div>
+            </div>
+
+            <div class="eye-card">
+                <div class="eye-card-title">👁️ 左眼</div>
+                <div class="eye-input-row">
+                    <label>近视</label>
+                    <button class="btn-minus" onclick="adjust('l-myopia', -25)">−</button>
+                    <input type="number" class="degree-input" id="l-myopia" value="0" onchange="calculate()">
+                    <button class="btn-plus" onclick="adjust('l-myopia', 25)">+</button>
+                </div>
+                <div class="eye-input-row">
+                    <label>散光</label>
+                    <button class="btn-minus" onclick="adjust('l-astigmatism', -25)">−</button>
+                    <input type="number" class="degree-input" id="l-astigmatism" value="0" onchange="calculate()">
+                    <button class="btn-plus" onclick="adjust('l-astigmatism', 25)">+</button>
+                </div>
+                <div class="eye-result">建议 <span id="l-result">0</span> 度</div>
+            </div>
+        </div>
+
+        <!-- 最终结果放大 -->
+        <div class="final-result-box">
+            <div class="final-result-row">
+                <div>
+                    <div class="label">右眼建议</div>
+                    <div class="degree" id="final-r">0</div>
+                    <div class="eye-label">度</div>
+                </div>
+                <div>
+                    <div class="label">左眼建议</div>
+                    <div class="degree" id="final-l">0</div>
+                    <div class="eye-label">度</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-btns">
+            <button class="btn-copy" onclick="copyResult()">📋 复制文字</button>
+            <button class="btn-screenshot" onclick="generateScreenshot()">🖼️ 生成图片</button>
+        </div>
+
+        <div class="screenshot-preview" id="screenshot-preview">
+            <img id="screenshot-img" src="" alt="换算结果">
+            <div class="screenshot-hint" id="screenshot-hint"></div>
+        </div>
+
+        <div class="notes">
+            <div class="notes-title">换算说明</div>
+            <div>1. 没有近视/平光选择0度</div>
+            <div>2. 双眼低于400近视无需换算</div>
+            <div>3. 散光度数若在150度以上，建议佩戴专业散光隐形</div>
+            <div>4. 此链接为近视/散光的测算参考，非远视</div>
+            <div>5. 测算前建议先去实体眼科机构进行专业验光检查</div>
+            <div style="margin-top:6px;color:#aaa;font-size:11px;">• 美瞳最高只有800度</div>
+        </div>
     </div>
-  `;
-}
 
-function copyCardParams(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓ 已复制';
-    btn.classList.add('copied');
-    showToast('参数已复制');
-    setTimeout(() => {
-      btn.textContent = '📋 复制参数';
-      btn.classList.remove('copied');
-    }, 2000);
-  });
-}
+    <div class="copy-toast" id="copy-toast">已复制</div>
 
-function openModal(d) {
-  document.getElementById('mTitle').textContent = d.花名;
-  document.getElementById('mSubtitle').textContent = `${d.品牌} · ${d.系列} · ${d.抛期} · ${d.材质}`;
-  
-  const seriesConfig = SERIES_CONFIG[d.系列] || { icon: '✨', color: '#999' };
-  const seriesColor = seriesConfig.color;
-  
-  // Images
-  const eyeImgs = d.上眼图 ? (Array.isArray(d.上眼图) ? d.上眼图 : [d.上眼图]).filter(Boolean) : [];
-  const lensImgs = d.镜片实图 ? (Array.isArray(d.镜片实图) ? d.镜片实图 : [d.镜片实图]).filter(Boolean) : [];
-  
-  const eyeGallery = document.getElementById('mEyeGallery');
-  const eyeRow = document.getElementById('mEyeImages');
-  if (eyeImgs.length > 0) {
-    eyeGallery.style.display = '';
-    eyeRow.innerHTML = eyeImgs.map((src, i) => `
-      <div class="gallery-item">
-        <img src="${src}" alt="上眼图${i+1}" loading="lazy">
-        <div class="gallery-label">${eyeImgs.length > 1 ? (i+1)+'/'+eyeImgs.length : '上眼效果图'}</div>
-      </div>
-    `).join('');
-  } else {
-    eyeGallery.style.display = '';
-    eyeRow.innerHTML = `<div class="gallery-placeholder" style="background:${seriesColor}">
-      <div class="ph-icon">👁️</div><div class="ph-text">暂无上眼图</div>
-    </div>`;
-  }
-  
-  const lensGallery = document.getElementById('mLensGallery');
-  const lensRow = document.getElementById('mLensImages');
-  if (lensImgs.length > 0) {
-    lensGallery.style.display = '';
-    lensRow.innerHTML = lensImgs.map((src, i) => `
-      <div class="gallery-item">
-        <img src="${src}" alt="镜片图${i+1}" loading="lazy">
-        <div class="gallery-label">${lensImgs.length > 1 ? (i+1)+'/'+lensImgs.length : '镜片实拍'}</div>
-      </div>
-    `).join('');
-  } else {
-    lensGallery.style.display = '';
-    lensRow.innerHTML = `<div class="gallery-placeholder" style="background:${seriesColor};opacity:0.7">
-      <div class="ph-icon">🔍</div><div class="ph-text">暂无镜片图</div>
-    </div>`;
-  }
-  
-  // Params
-  const fields = [
-    ['系列', d.系列], ['色系', d.色系], ['品牌', d.品牌], ['抛期', d.抛期],
-    ['材质', d.材质], ['直径', d.直径 + 'mm'], ['着色直径', (d.着色直径 || d.直径) + 'mm'],
-    ['基弧', d.基弧 + 'mm'], ['含水量', d.含水量 + '%'], ['透氧量', d.透氧量 + ' Dk/t'],
-    ['高光', d.高光 || '—']
-  ];
-  
-  document.getElementById('mGrid').innerHTML = fields.map(([k, v]) => `
-    <div class="detail-item ${k === '高光' ? 'full' : ''}">
-      <label>${k}</label>
-      <value>${v || '—'}</value>
-    </div>
-  `).join('');
-  
-  // Scripts (multiple)
-  const scriptsSec = document.getElementById('mScripts');
-  const scriptsList = document.getElementById('mScriptsList');
-  
-  let scripts = [];
-  if (d.描述话术) {
-    const raw = typeof d.描述话术 === 'string' ? d.描述话术 : (d.描述话术.text || '');
-    // 支持 --- 分隔多条话术
-    if (raw.includes('---')) {
-      scripts = raw.split('---').map(s => s.trim()).filter(Boolean).map((s, i) => ({ tag: `话术 ${i+1}`, text: s }));
-    } else if (raw.includes('\n') && raw.split('\n').filter(l => l.trim()).length > 1) {
-      // 多行也视为多条
-      scripts = raw.split('\n').map(s => s.trim()).filter(Boolean).map((s, i) => ({ tag: `话术 ${i+1}`, text: s }));
-    } else {
-      scripts = [{ tag: '默认话术', text: raw }];
-    }
-  }
-  
-  if (scripts.length > 0) {
-    scriptsSec.style.display = '';
-    scriptsList.innerHTML = scripts.map((s, i) => {
-      const text = s.text || '';
-      const tag = s.tag || `话术 ${i+1}`;
-      return `
-        <div class="script-item">
-          <div class="script-item-header">
-            <span class="script-tag">${tag}</span>
-            <button class="copy-btn-small" onclick="copyScript(this, '${text.replace(/'/g, "\\'")}')">复制</button>
-          </div>
-          <div class="script-text">${text}</div>
-        </div>
-      `;
-    }).join('');
-  } else {
-    scriptsSec.style.display = 'none';
-  }
-  
-  document.getElementById('modal').classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
+    <script>
+        let currentBrand = '弥生';
 
-function copyScript(btn, text) {
-  navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓ 已复制';
-    btn.classList.add('copied');
-    showToast('话术已复制');
-    setTimeout(() => {
-      btn.textContent = '复制';
-      btn.classList.remove('copied');
-    }, 2000);
-  });
-}
+        function adjust(id, delta) {
+            const input = document.getElementById(id);
+            let val = parseInt(input.value) || 0;
+            val += delta;
+            if (val < 0) val = 0;
+            input.value = val;
+            calculate();
+        }
 
-function closeModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('modal').classList.remove('active');
-  document.body.style.overflow = '';
-}
+        function convertDegree(totalDegree) {
+            if (totalDegree <= 400) return totalDegree;
+            else if (totalDegree <= 500) return totalDegree - 25;
+            else if (totalDegree <= 700) return totalDegree - 50;
+            else return totalDegree - 70;
+        }
 
-function showToast(msg) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2000);
-}
+        const STANDARD_DEGREES = [0, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525, 550, 575, 600, 650, 700, 750, 800];
 
-// === Series Sort ===
-let CURRENT_SORT_ORDER = [];
-let DRAG_SRC = null;
+        function getStandardDegree(raw) {
+            if (raw <= 0) return 0;
+            if (raw >= 800) return 800;
+            const rounded = Math.round(raw);
+            if (STANDARD_DEGREES.includes(rounded)) return rounded;
+            for (let i = 0; i < STANDARD_DEGREES.length - 1; i++) {
+                if (raw > STANDARD_DEGREES[i] && raw < STANDARD_DEGREES[i + 1]) {
+                    const diff = STANDARD_DEGREES[i + 1] - STANDARD_DEGREES[i];
+                    const mid = diff / 2;
+                    const dist = raw - STANDARD_DEGREES[i];
+                    return dist < mid ? STANDARD_DEGREES[i] : STANDARD_DEGREES[i + 1];
+                }
+            }
+            return 800;
+        }
 
-function getSeriesOrderKey() {
-  return 'seriesOrder_' + CURRENT_BRAND;
-}
+        function calculate() {
+            const rMyopia = parseFloat(document.getElementById('r-myopia').value) || 0;
+            const lMyopia = parseFloat(document.getElementById('l-myopia').value) || 0;
+            const rAstig = parseFloat(document.getElementById('r-astigmatism').value) || 0;
+            const lAstig = parseFloat(document.getElementById('l-astigmatism').value) || 0;
 
-function loadSeriesOrder() {
-  try {
-    const saved = localStorage.getItem(getSeriesOrderKey());
-    if (saved) CURRENT_SORT_ORDER = JSON.parse(saved);
-  } catch (e) {}
-}
+            if (rAstig > 150 || lAstig > 150) showModal();
 
-function openSortModal() {
-  const modal = document.getElementById('sortModal');
-  const list = document.getElementById('sortList');
-  
-  // 获取当前品牌下的所有系列
-  const brandData = ALL_DATA.filter(d => d.品牌 === BRAND_CONFIG[CURRENT_BRAND].name);
-  const seriesSet = [...new Set(brandData.map(d => d.系列).filter(Boolean))];
-  
-  // 合并已保存的顺序和新系列
-  const saved = CURRENT_SORT_ORDER.length > 0 ? CURRENT_SORT_ORDER : Object.keys(SERIES_CONFIG);
-  const ordered = [];
-  const seen = new Set();
-  
-  // 先按保存的顺序
-  for (const s of saved) {
-    if (seriesSet.includes(s) && !seen.has(s)) {
-      ordered.push(s);
-      seen.add(s);
-    }
-  }
-  // 再添加未排序的新系列
-  for (const s of seriesSet) {
-    if (!seen.has(s)) ordered.push(s);
-  }
-  
-  CURRENT_SORT_ORDER = ordered;
-  
-  list.innerHTML = ordered.map((s, i) => {
-    const count = brandData.filter(d => d.系列 === s).length;
-    const sc = SERIES_CONFIG[s] || { icon: '✨', color: '#999' };
-    return `
-      <div class="sort-item" draggable="true" data-index="${i}" data-series="${s}">
-        <span class="drag-handle">⋮⋮</span>
-        <span class="sort-series-name">${sc.icon} ${s}</span>
-        <span class="sort-series-count">${count}款</span>
-      </div>
-    `;
-  }).join('');
-  
-  // 绑定拖拽事件
-  list.querySelectorAll('.sort-item').forEach(item => {
-    item.addEventListener('dragstart', handleDragStart);
-    item.addEventListener('dragover', handleDragOver);
-    item.addEventListener('drop', handleDrop);
-    item.addEventListener('dragend', handleDragEnd);
-  });
-  
-  modal.classList.add('show');
-}
+            let rTotal = rMyopia + (rAstig > 0 && rAstig <= 150 ? rAstig / 2 : 0);
+            let lTotal = lMyopia + (lAstig > 0 && lAstig <= 150 ? lAstig / 2 : 0);
 
-function closeSortModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('sortModal').classList.remove('show');
-}
+            const rResult = getStandardDegree(convertDegree(rTotal));
+            const lResult = getStandardDegree(convertDegree(lTotal));
 
-function handleDragStart(e) {
-  DRAG_SRC = this;
-  this.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
+            document.getElementById('r-result').textContent = rResult;
+            document.getElementById('l-result').textContent = lResult;
+            document.getElementById('final-r').textContent = rResult;
+            document.getElementById('final-l').textContent = lResult;
+        }
 
-function handleDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-}
+        function switchBrand(brand) {
+            currentBrand = brand;
+            document.getElementById('brandName').textContent = brand;
+            document.getElementById('watermark').textContent = brand + ' 内部工具';
+            document.title = brand + ' 度数换算';
+            document.querySelectorAll('.brand-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent === brand);
+            });
+        }
 
-function handleDrop(e) {
-  e.stopPropagation();
-  if (DRAG_SRC === this) return;
-  
-  const list = document.getElementById('sortList');
-  const items = [...list.querySelectorAll('.sort-item')];
-  const srcIdx = items.indexOf(DRAG_SRC);
-  const dstIdx = items.indexOf(this);
-  
-  if (srcIdx < dstIdx) {
-    this.after(DRAG_SRC);
-  } else {
-    this.before(DRAG_SRC);
-  }
-  
-  // 更新 CURRENT_SORT_ORDER
-  const newOrder = [...list.querySelectorAll('.sort-item')].map(el => el.dataset.series);
-  CURRENT_SORT_ORDER = newOrder;
-}
+        function showModal() { document.getElementById('astig-modal').classList.add('show'); }
+        function closeModal() { document.getElementById('astig-modal').classList.remove('show'); }
 
-function handleDragEnd() {
-  this.classList.remove('dragging');
-  DRAG_SRC = null;
-}
+        function copyResult() {
+            const text = `宝宝 右眼选${document.getElementById('final-r').textContent}度，左眼选${document.getElementById('final-l').textContent}度`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => showToast('已复制')).catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+        }
 
-function saveSeriesOrder() {
-  const list = document.getElementById('sortList');
-  const newOrder = [...list.querySelectorAll('.sort-item')].map(el => el.dataset.series);
-  CURRENT_SORT_ORDER = newOrder;
-  localStorage.setItem(getSeriesOrderKey(), JSON.stringify(newOrder));
-  closeSortModal();
-  render();
-  showToast('系列顺序已保存');
-}
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast(ok ? '已复制' : '复制失败，请手动复制');
+        }
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') {
-    closeModal();
-    closeSortModal();
-  }
-});
+        function showToast(msg) {
+            const t = document.getElementById('copy-toast');
+            t.textContent = msg; t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
 
-// === User Tags ===
-let CURRENT_TAG_FLOWER = '';
-let CURRENT_SELECTED_TAG = '';
+        function generateScreenshot() {
+            const rResult = document.getElementById('final-r').textContent;
+            const lResult = document.getElementById('final-l').textContent;
+            const rMyopia = document.getElementById('r-myopia').value || '0';
+            const lMyopia = document.getElementById('l-myopia').value || '0';
+            const rAstig = document.getElementById('r-astigmatism').value || '0';
+            const lAstig = document.getElementById('l-astigmatism').value || '0';
 
-function getUserTags() {
-  try {
-    const saved = localStorage.getItem('userTags');
-    return saved ? JSON.parse(saved) : {};
-  } catch (e) { return {}; }
-}
+            const canvas = document.createElement('canvas');
+            canvas.width = 400; canvas.height = 480;
+            const ctx = canvas.getContext('2d');
 
-function setUserTag(flowerName, tag) {
-  const tags = getUserTags();
-  if (tag) {
-    tags[flowerName] = tag;
-  } else {
-    delete tags[flowerName];
-  }
-  localStorage.setItem('userTags', JSON.stringify(tags));
-}
+            ctx.fillStyle = '#f1f5f4'; ctx.fillRect(0, 0, 400, 480);
+            ctx.fillStyle = '#7ba7a6'; ctx.fillRect(0, 0, 400, 50);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 17px sans-serif';
+            ctx.textAlign = 'center'; ctx.fillText(currentBrand, 200, 22);
+            ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '10px sans-serif';
+            ctx.fillText('官方度数换算工具', 200, 42);
 
-function getUserTag(flowerName) {
-  return getUserTags()[flowerName] || '';
-}
+            ctx.fillStyle = '#3d5a4d'; ctx.font = 'bold 16px sans-serif';
+            ctx.fillText('度数换算结果', 200, 75);
+            ctx.strokeStyle = '#d0ddd8'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(40, 90); ctx.lineTo(360, 90); ctx.stroke();
 
-function openTagModal(flowerName) {
-  CURRENT_TAG_FLOWER = flowerName;
-  CURRENT_SELECTED_TAG = getUserTag(flowerName);
-  document.getElementById('tagModalTitle').textContent = '🏷️ 标记：' + flowerName;
-  document.querySelectorAll('#tagOptions .tag-option').forEach(btn => {
-    btn.classList.toggle('selected', btn.dataset.tag === CURRENT_SELECTED_TAG);
-  });
-  document.getElementById('tagModal').classList.add('show');
-}
+            ctx.fillStyle = '#888'; ctx.font = '13px sans-serif';
+            ctx.fillText('左眼', 200, 115);
+            ctx.fillStyle = '#7ba7a6'; ctx.font = 'bold 34px sans-serif';
+            ctx.fillText(lResult + '°', 200, 155);
 
-function closeTagModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('tagModal').classList.remove('show');
-}
+            ctx.fillStyle = '#888'; ctx.font = '13px sans-serif';
+            ctx.fillText('右眼', 200, 195);
+            ctx.fillStyle = '#7ba7a6'; ctx.font = 'bold 34px sans-serif';
+            ctx.fillText(rResult + '°', 200, 235);
 
-function selectTag(btn) {
-  document.querySelectorAll('#tagOptions .tag-option').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
-  CURRENT_SELECTED_TAG = btn.dataset.tag;
-}
+            ctx.beginPath(); ctx.moveTo(40, 260); ctx.lineTo(360, 260); ctx.stroke();
+            ctx.fillStyle = '#888'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+            ctx.fillText('左眼：近视 ' + lMyopia + '°' + (lAstig > 0 ? '  散光 ' + lAstig + '°' : ''), 40, 285);
+            ctx.fillText('右眼：近视 ' + rMyopia + '°' + (rAstig > 0 ? '  散光 ' + rAstig + '°' : ''), 40, 305);
 
-function saveTag() {
-  setUserTag(CURRENT_TAG_FLOWER, CURRENT_SELECTED_TAG);
-  closeTagModal();
-  render();
-  showToast(CURRENT_SELECTED_TAG ? '已标记「' + CURRENT_SELECTED_TAG + '」' : '标记已清除');
-}
+            ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 410);
+            ctx.fillText(currentBrand + ' 官方工具', 200, 435);
+            ctx.fillText(new Date().toLocaleDateString('zh-CN'), 200, 455);
 
-// Init
-switchBrand('misheng');
-loadData();
-</script>
+            canvas.toBlob(function(blob) {
+                const dataURL = canvas.toDataURL('image/png');
+                document.getElementById('screenshot-img').src = dataURL;
+                document.getElementById('screenshot-preview').classList.add('show');
+                document.getElementById('screenshot-preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (navigator.clipboard && navigator.clipboard.write && blob) {
+                    navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
+                        document.getElementById('screenshot-hint').textContent = '✅ 图片已复制，可直接粘贴';
+                        showToast('图片已复制');
+                    }).catch(() => {
+                        document.getElementById('screenshot-hint').textContent = '⚠️ 请长按上方图片保存后发送';
+                    });
+                } else {
+                    document.getElementById('screenshot-hint').textContent = '⚠️ 请长按上方图片保存后发送';
+                }
+            }, 'image/png');
+        }
+
+        // ========== 截图识别 ==========
+        function toggleOCR() {
+            document.getElementById('ocrFold').classList.toggle('open');
+        }
+
+        const isLocalFile = window.location.protocol === 'file:';
+        const ocrUpload = document.getElementById('ocrUpload');
+        const ocrInput = document.getElementById('ocrInput');
+        const ocrPreview = document.getElementById('ocrPreview');
+        const ocrPreviewImg = document.getElementById('ocrPreviewImg');
+        const ocrStatus = document.getElementById('ocrStatus');
+
+        ocrUpload.addEventListener('click', () => ocrInput.click());
+        ocrUpload.addEventListener('dragover', e => { e.preventDefault(); ocrUpload.classList.add('dragover'); });
+        ocrUpload.addEventListener('dragleave', () => ocrUpload.classList.remove('dragover'));
+        ocrUpload.addEventListener('drop', e => {
+            e.preventDefault(); ocrUpload.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleOCRImage(e.dataTransfer.files[0]);
+        });
+        ocrInput.addEventListener('change', e => { if (e.target.files.length) handleOCRImage(e.target.files[0]); });
+
+        document.addEventListener('paste', e => {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    handleOCRImage(items[i].getAsFile());
+                    e.preventDefault(); break;
+                }
+            }
+        });
+
+        function handleOCRImage(file) {
+            if (!file.type.startsWith('image/')) { showOCRStatus('请上传图片文件', 'error'); return; }
+            const reader = new FileReader();
+            reader.onload = e => {
+                ocrPreviewImg.src = e.target.result;
+                ocrPreview.classList.add('show');
+                performOCR(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function performOCR(imageData) {
+            if (isLocalFile) {
+                showOCRStatus('⚠️ 本地打开不支持截图识别，请部署到网页后使用', 'localwarn');
+                return;
+            }
+            showOCRStatus('🔍 正在识别图片中的度数...', 'processing');
+            try {
+                const result = await Tesseract.recognize(imageData, 'chi_sim+eng', {
+                    logger: m => { if (m.status === 'recognizing text') showOCRStatus(`🔍 正在识别... ${(m.progress * 100).toFixed(0)}%`, 'processing'); }
+                });
+                const extracted = extractDegrees(result.data.text);
+                // 始终显示原始文字，方便调试
+                const rawPreview = document.getElementById('ocr-raw-text');
+                if (rawPreview) {
+                    rawPreview.textContent = extracted.rawText || '(无文字)';
+                    rawPreview.classList.add('show');
+                }
+                if (extracted.hasData) {
+                    const res = fillInputs(extracted);
+                    if (res.hasInvalid) {
+                        showOCRStatus('⚠️ 识别到异常度数，请核对原始文字后手动输入', 'error');
+                    } else if (res.hasAstigCapped) {
+                        const eyes = res.cappedEyes.join('、');
+                        const modalText = document.getElementById('astig-modal-text');
+                        if (modalText) {
+                            modalText.innerHTML = eyes + '散光度数超过150度，<strong style="color:#e74c3c;">已按150度封顶换算</strong>。<br><br>请告知客户';
+                        }
+                        showModal();
+                        showOCRStatus(`⚠️ ${eyes}散光超150度！已按150度封顶换算`, 'success');
+                    } else {
+                        showOCRStatus('✅ 识别成功！已自动填入', 'success');
+                    }
+                    setTimeout(() => calculate(), 300);
+                } else {
+                    showOCRStatus('⚠️ 未能识别到度数，请手动输入', 'error');
+                }
+            } catch (err) {
+                showOCRStatus('❌ 识别失败：' + err.message, 'error');
+            }
+        }
+
+        // 改进版 OCR 提取
+        function extractDegrees(text) {
+            const result = { rMyopia: null, rAstig: null, lMyopia: null, lAstig: null, hasData: false, rawText: text };
+
+            // ========== 第一层：聊天截图/口语化解析 ==========
+            function extractChatDegrees(rawText) {
+                // 统一空白
+                const text = rawText.replace(/[\s\u3000]+/g, ' ').trim();
+                const r = { myopia: null, astig: null };
+                const l = { myopia: null, astig: null };
+
+                // 支持的关键字（包含常见OCR误识别）
+                const RIGHT_EYES = ['右眼'];
+                const LEFT_EYES = ['左眼', '工眼'];  // 工=左的OCR误识别
+
+                // 提取某个眼睛的数据段（找到第一个匹配关键词，截到下一个眼关键词之前）
+                function extractEyeData(eyeKeywords) {
+                    for (const kw of eyeKeywords) {
+                        const idx = text.indexOf(kw);
+                        if (idx === -1) continue;
+                        const start = idx + kw.length;
+                        // 结束位置 = 下一个任何眼关键词
+                        const allEyeKeywords = [...RIGHT_EYES, ...LEFT_EYES];
+                        let end = text.length;
+                        for (const ek of allEyeKeywords) {
+                            if (ek === kw) continue;
+                            const eIdx = text.indexOf(ek, start);
+                            if (eIdx !== -1 && eIdx < end) end = eIdx;
+                        }
+                        const segment = text.substring(start, end).trim();
+                        const nums = segment.match(/\b\d+\b/g);
+                        if (!nums) return null;
+                        const values = nums.map(n => parseFloat(n)).filter(n => n > 0 && n <= 1000);
+                        if (values.length === 0) return null;
+                        return { myopia: values[0], astig: values.length >= 2 ? values[1] : null };
+                    }
+                    return null;
+                }
+
+                const rData = extractEyeData(RIGHT_EYES);
+                if (rData) { r.myopia = rData.myopia; r.astig = rData.astig; }
+
+                const lData = extractEyeData(LEFT_EYES);
+                if (lData) { l.myopia = lData.myopia; l.astig = lData.astig; }
+
+                // 如果已经识别到左右眼数据，直接返回，避免纯数字逻辑覆盖
+                if (r.myopia !== null || l.myopia !== null) {
+                    return { r, l, hasData: true };
+                }
+
+                // 纯数字序列，无左右标注，按顺序填充
+                // "550 75 600 50" → 右(550,75) 左(600,50)
+                const allNums = text.match(/\b\d+\b/g);
+                if (allNums) {
+                    const nums = allNums.map(n => parseFloat(n)).filter(n => n > 0 && n <= 1000);
+                    if (nums.length >= 4) {
+                        r.myopia = nums[0]; r.astig = nums[1];
+                        l.myopia = nums[2]; l.astig = nums[3];
+                    } else if (nums.length >= 2) {
+                        r.myopia = nums[0]; l.myopia = nums[1];
+                    }
+                }
+
+                return { r, l, hasData: r.myopia !== null || l.myopia !== null };
+            }
+
+            const chatData = extractChatDegrees(text);
+            if (chatData.hasData) {
+                result.rMyopia = chatData.r.myopia;
+                result.rAstig = chatData.r.astig;
+                result.lMyopia = chatData.l.myopia;
+                result.lAstig = chatData.l.astig;
+                result.hasData = true;
+                return result;
+            }
+            // 验光单特征：每个眼睛的数据重复多行，粗体行（第一行）为准
+            // 策略：过滤无关行后，取前两个包含 >=2 个 0-10 数字的行
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            function isSkipLine(line) {
+                return /S\.E\.|SE\s*[-–:]|PD:|瞳距|PD\s*[:：]|NO\.|SN:|NAME|日期|时间|VD:|CYL:/.test(line);
+            }
+            function parseNums(line) {
+                const m = line.match(/[-+]?\d+\.?\d*/g);
+                if (!m) return [];
+                return m.map(n => parseFloat(n)).filter(n => n > 0 && n <= 1000);
+            }
+
+            const dataRows = [];
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (isSkipLine(line)) continue;
+                const nums = parseNums(line);
+                // 数据行特征：至少2个 0-10 范围的数字（屈光度 S 和 C）
+                const degreeNums = nums.filter(n => n > 0 && n <= 10);
+                if (degreeNums.length >= 2) {
+                    dataRows.push({ myopia: degreeNums[0], astig: degreeNums[1] });
+                    if (dataRows.length >= 2) break; // 只取前两行
+                }
+            }
+
+            if (dataRows.length >= 1) {
+                result.rMyopia = dataRows[0].myopia;
+                result.rAstig = dataRows[0].astig;
+            }
+            if (dataRows.length >= 2) {
+                result.lMyopia = dataRows[1].myopia;
+                result.lAstig = dataRows[1].astig;
+            }
+
+            result.hasData = result.rMyopia !== null || result.lMyopia !== null;
+            return result;
+        }
+
+        function fillInputs(data) {
+            let hasInvalid = false;
+            let cappedEyes = [];
+            function setVal(id, val) {
+                if (val === null) return;
+                if (val > 0 && val <= 10) val = Math.round(val * 100);
+                else if (val > 10 && val < 1000) val = Math.round(val);
+                // 合理性校验：近视度数不可能超过1000
+                if (val > 1000) { hasInvalid = true; return; }
+                // 散光封顶150度，记录哪个眼睛
+                if (id.includes('astigmatism') && val > 150) {
+                    val = 150;
+                    const eye = id.startsWith('r') ? '右眼' : '左眼';
+                    if (!cappedEyes.includes(eye)) cappedEyes.push(eye);
+                }
+                document.getElementById(id).value = val;
+                showFilledTag(id);
+            }
+            setVal('r-myopia', data.rMyopia);
+            setVal('r-astigmatism', data.rAstig);
+            setVal('l-myopia', data.lMyopia);
+            setVal('l-astigmatism', data.lAstig);
+            return { hasInvalid, hasAstigCapped: cappedEyes.length > 0, cappedEyes };
+        }
+
+        function showFilledTag(inputId) {
+            const input = document.getElementById(inputId);
+            const row = input.closest('.eye-input-row');
+            if (row) {
+                const label = row.querySelector('label');
+                if (label && !label.querySelector('.ocr-filled-tag')) {
+                    const tag = document.createElement('span');
+                    tag.className = 'ocr-filled-tag'; tag.textContent = '已识别';
+                    label.appendChild(tag);
+                }
+            }
+        }
+
+        function showOCRStatus(msg, type) {
+            ocrStatus.textContent = msg;
+            ocrStatus.className = 'ocr-status show ' + type;
+        }
+
+        function clearAll() {
+            ['r-myopia', 'r-astigmatism', 'l-myopia', 'l-astigmatism'].forEach(id => {
+                document.getElementById(id).value = 0;
+            });
+            document.getElementById('r-result').textContent = '0';
+            document.getElementById('l-result').textContent = '0';
+            document.getElementById('final-r').textContent = '0';
+            document.getElementById('final-l').textContent = '0';
+
+            const preview = document.getElementById('ocrPreview');
+            const previewImg = document.getElementById('ocrPreviewImg');
+            if (preview) preview.classList.remove('show');
+            if (previewImg) previewImg.src = '';
+            if (ocrStatus) { ocrStatus.textContent = ''; ocrStatus.className = 'ocr-status'; }
+            document.querySelectorAll('.ocr-filled-tag').forEach(tag => tag.remove());
+            const rawPreview = document.getElementById('ocr-raw-text');
+            if (rawPreview) rawPreview.classList.remove('show');
+            document.getElementById('screenshot-preview').classList.remove('show');
+            const quickInput = document.getElementById('quickInput');
+            if (quickInput) quickInput.value = '';
+
+            showToast('已清空');
+        }
+
+        calculate();
+        // 快速输入解析
+        function handleQuickPaste(e) {
+            setTimeout(() => {
+                const input = e.target;
+                const text = input.value.trim();
+                if (!text) return;
+                
+                const extracted = extractDegrees(text);
+                if (extracted.hasData) {
+                    const res = fillInputs(extracted);
+                    if (res.hasInvalid) {
+                        showToast('⚠️ 检测到异常度数，请核对');
+                    } else if (res.hasAstigCapped) {
+                        const eyes = res.cappedEyes.join('、');
+                        const modalText = document.getElementById('astig-modal-text');
+                        if (modalText) {
+                            modalText.innerHTML = eyes + '散光度数超过150度，<strong style="color:#e74c3c;">已按150度封顶换算</strong>。<br><br>请告知客户';
+                        }
+                        showModal();
+                        showToast('⚠️ ' + eyes + '散光超150度！已封顶');
+                    } else {
+                        showToast('✅ 已自动填充');
+                    }
+                    setTimeout(() => calculate(), 100);
+                } else {
+                    showToast('⚠️ 未能识别，请检查格式');
+                }
+            }, 0);
+        }
+
+    </script>
 </body>
 </html>
