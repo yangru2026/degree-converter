@@ -750,6 +750,27 @@
                     if (isBoth && l.astig === null && l.myopia !== null) l.astig = astigVal;
                 }
 
+                // 全局共用：双/都/两/各/左右眼 — 补齐缺失的眼
+                const isBothEye = /双|都|两|各|左右/.test(text);
+                if (isBothEye) {
+                    if (r.myopia !== null && l.myopia === null) {
+                        l.myopia = r.myopia; l.astig = r.astig;
+                    } else if (l.myopia !== null && r.myopia === null) {
+                        r.myopia = l.myopia; r.astig = l.astig;
+                    } else if (r.myopia === null && l.myopia === null) {
+                        const nums = text.match(/[-+]?\d+\.?\d*/g);
+                        if (nums) {
+                            const values = nums.map(n => {
+                                let v = Math.abs(parseFloat(n));
+                                if (v > 0 && v <= 10) v = Math.round(v * 100);
+                                return v;
+                            }).filter(n => n > 0 && n <= 1000);
+                            if (values.length >= 1) { r.myopia = values[0]; l.myopia = values[0]; }
+                            if (values.length >= 2) { r.astig = values[1]; l.astig = values[1]; }
+                        }
+                    }
+                }
+
                 // 如果已经识别到左右眼数据，直接返回，避免纯数字逻辑覆盖
                 if (r.myopia !== null || l.myopia !== null) {
                     return { r, l, hasData: true };
