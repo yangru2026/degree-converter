@@ -697,9 +697,9 @@
                 const r = { myopia: null, astig: null };
                 const l = { myopia: null, astig: null };
 
-                // 支持的关键字（包含常见OCR误识别）
-                const RIGHT_EYES = ['右眼'];
-                const LEFT_EYES = ['左眼', '工眼'];  // 工=左的OCR误识别
+                // 支持的关键字（包含常见OCR误识别，长的优先匹配）
+                const RIGHT_EYES = ['右眼', '右'];
+                const LEFT_EYES = ['左眼', '工眼', '左'];  // 工=左的OCR误识别
 
                 // 提取某个眼睛的数据段（找到第一个匹配关键词，截到下一个眼关键词之前）
                 function extractEyeData(eyeKeywords) {
@@ -716,9 +716,14 @@
                             if (eIdx !== -1 && eIdx < end) end = eIdx;
                         }
                         const segment = text.substring(start, end).trim();
-                        const nums = segment.match(/\b\d+\b/g);
+                        // 支持负号、小数、屈光度格式（-6.00 → 600）
+                        const nums = segment.match(/[-+]?\d+\.?\d*/g);
                         if (!nums) return null;
-                        const values = nums.map(n => parseFloat(n)).filter(n => n > 0 && n <= 1000);
+                        const values = nums.map(n => {
+                            let v = Math.abs(parseFloat(n));
+                            if (v > 0 && v <= 10) v = Math.round(v * 100); // 屈光度转度数
+                            return v;
+                        }).filter(n => n > 0 && n <= 1000);
                         if (values.length === 0) return null;
                         return { myopia: values[0], astig: values.length >= 2 ? values[1] : null };
                     }
@@ -731,6 +736,20 @@
                 const lData = extractEyeData(LEFT_EYES);
                 if (lData) { l.myopia = lData.myopia; l.astig = lData.astig; }
 
+                // 全局散光检测：如"散光100""散光都100""两边散光100"
+                const astigMatch = text.match(/散光\D*(\d+\.?\d*)/);
+                if (astigMatch) {
+                    let astigVal = Math.abs(parseFloat(astigMatch[1]));
+                    if (astigVal > 0 && astigVal <= 10) astigVal = Math.round(astigVal * 100);
+                    const ctxStart = Math.max(0, astigMatch.index - 8);
+                    const ctxEnd = Math.min(text.length, astigMatch.index + astigMatch[0].length + 8);
+                    const ctx = text.substring(ctxStart, ctxEnd);
+                    const isBoth = /都|两边|双眼|两个|左右|各/.test(ctx);
+                    if (r.astig === null && r.myopia !== null) r.astig = astigVal;
+                    else if (l.astig === null && l.myopia !== null) l.astig = astigVal;
+                    if (isBoth && l.astig === null && l.myopia !== null) l.astig = astigVal;
+                }
+
                 // 如果已经识别到左右眼数据，直接返回，避免纯数字逻辑覆盖
                 if (r.myopia !== null || l.myopia !== null) {
                     return { r, l, hasData: true };
@@ -738,12 +757,20 @@
 
                 // 纯数字序列，无左右标注，按顺序填充
                 // "550 75 600 50" → 右(550,75) 左(600,50)
-                const allNums = text.match(/\b\d+\b/g);
+                const allNums = text.match(/[-+]?\d+\.?\d*/g);
                 if (allNums) {
-                    const nums = allNums.map(n => parseFloat(n)).filter(n => n > 0 && n <= 1000);
+                    const nums = allNums.map(n => {
+                        let v = Math.abs(parseFloat(n));
+                        if (v > 0 && v <= 10) v = Math.round(v * 100);
+                        return v;
+                    }).filter(n => n > 0 && n <= 1000);
                     if (nums.length >= 4) {
                         r.myopia = nums[0]; r.astig = nums[1];
                         l.myopia = nums[2]; l.astig = nums[3];
+                    } else if (nums.length === 3) {
+                        r.myopia = nums[0]; l.myopia = nums[1];
+                        // 第三个数字可能是双边散光
+                        r.astig = nums[2]; l.astig = nums[2];
                     } else if (nums.length >= 2) {
                         r.myopia = nums[0]; l.myopia = nums[1];
                     }
