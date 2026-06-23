@@ -548,9 +548,12 @@
             const lMyopia = document.getElementById('l-myopia').value || '0';
             const rAstig = document.getElementById('r-astigmatism').value || '0';
             const lAstig = document.getElementById('l-astigmatism').value || '0';
+            const rAstigNum = parseFloat(rAstig) || 0;
+            const lAstigNum = parseFloat(lAstig) || 0;
+            const highAstig = rAstigNum > 150 || lAstigNum > 150;
 
             const canvas = document.createElement('canvas');
-            canvas.width = 400; canvas.height = 480;
+            canvas.width = 400; canvas.height = highAstig ? 520 : 480;
             const ctx = canvas.getContext('2d');
 
             ctx.fillStyle = '#f1f5f4'; ctx.fillRect(0, 0, 400, 480);
@@ -581,9 +584,20 @@
             ctx.fillText('右眼：近视 ' + rMyopia + '°' + (rAstig > 0 ? '  散光 ' + rAstig + '°' : ''), 40, 305);
 
             ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 410);
-            ctx.fillText(currentBrand + ' 官方工具', 200, 435);
-            ctx.fillText(new Date().toLocaleDateString('zh-CN'), 200, 455);
+            if (highAstig) {
+                // 散光超过150度警告条
+                ctx.fillStyle = '#e74c3c'; ctx.fillRect(30, 330, 340, 36);
+                ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif';
+                ctx.fillText('⚠️ 散光超过150度，建议咨询专业眼科医生', 200, 352);
+                ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif';
+                ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 450);
+                ctx.fillText(currentBrand + ' 官方工具', 200, 475);
+                ctx.fillText(new Date().toLocaleDateString('zh-CN'), 200, 495);
+            } else {
+                ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 410);
+                ctx.fillText(currentBrand + ' 官方工具', 200, 435);
+                ctx.fillText(new Date().toLocaleDateString('zh-CN'), 200, 455);
+            }
 
             canvas.toBlob(function(blob) {
                 const dataURL = canvas.toDataURL('image/png');
