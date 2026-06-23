@@ -387,6 +387,7 @@
                     <button class="btn-plus" onclick="adjust('r-astigmatism', 25)">+</button>
                 </div>
                 <div class="eye-result">建议 <span id="r-result">0</span> 度</div>
+                <div class="eye-warning" id="r-warning" style="display:none; color:#e74c3c; font-size:11px; text-align:center; margin-top:4px;"></div>
             </div>
 
             <div class="eye-card">
@@ -404,6 +405,7 @@
                     <button class="btn-plus" onclick="adjust('l-astigmatism', 25)">+</button>
                 </div>
                 <div class="eye-result">建议 <span id="l-result">0</span> 度</div>
+                <div class="eye-warning" id="l-warning" style="display:none; color:#e74c3c; font-size:11px; text-align:center; margin-top:4px;"></div>
             </div>
         </div>
 
@@ -490,6 +492,14 @@
             const rAstig = parseFloat(document.getElementById('r-astigmatism').value) || 0;
             const lAstig = parseFloat(document.getElementById('l-astigmatism').value) || 0;
 
+            // 左右眼散光警告显示
+            const rWarn = document.getElementById('r-warning');
+            const lWarn = document.getElementById('l-warning');
+            if (rAstig > 150) { rWarn.textContent = '⚠️ 右眼散光过高，按最高150换算'; rWarn.style.display = 'block'; }
+            else { rWarn.style.display = 'none'; }
+            if (lAstig > 150) { lWarn.textContent = '⚠️ 左眼散光过高，按最高150换算'; lWarn.style.display = 'block'; }
+            else { lWarn.style.display = 'none'; }
+
             if (rAstig > 150 || lAstig > 150) showModal();
 
             let rTotal = rMyopia > 0 ? rMyopia + (rAstig > 0 && rAstig <= 150 ? rAstig / 2 : 0) : 0;
@@ -551,6 +561,8 @@
             const rAstigNum = parseFloat(rAstig) || 0;
             const lAstigNum = parseFloat(lAstig) || 0;
             const highAstig = rAstigNum > 150 || lAstigNum > 150;
+            const rHighAstig = rAstigNum > 150;
+            const lHighAstig = lAstigNum > 150;
 
             const canvas = document.createElement('canvas');
             canvas.width = 400; canvas.height = highAstig ? 520 : 480;
@@ -588,7 +600,11 @@
                 // 散光超过150度警告条
                 ctx.fillStyle = '#e74c3c'; ctx.fillRect(30, 330, 340, 36);
                 ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif';
-                ctx.fillText('⚠️ 散光超过150度，建议咨询专业眼科医生', 200, 352);
+                let warnText = '⚠️ 散光超过150度，建议咨询专业眼科医生';
+                if (rHighAstig && !lHighAstig) warnText = '⚠️ 右眼散光过高，按最高150换算';
+                else if (lHighAstig && !rHighAstig) warnText = '⚠️ 左眼散光过高，按最高150换算';
+                else if (rHighAstig && lHighAstig) warnText = '⚠️ 双眼散光过高，按最高150换算';
+                ctx.fillText(warnText, 200, 352);
                 ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif';
                 ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 450);
                 ctx.fillText(currentBrand + ' 官方工具', 200, 475);
