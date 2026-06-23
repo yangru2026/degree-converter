@@ -492,8 +492,8 @@
 
             if (rAstig > 150 || lAstig > 150) showModal();
 
-            let rTotal = rMyopia + (rAstig > 0 && rAstig <= 150 ? rAstig / 2 : 0);
-            let lTotal = lMyopia + (lAstig > 0 && lAstig <= 150 ? lAstig / 2 : 0);
+            let rTotal = rMyopia > 0 ? rMyopia + (rAstig > 0 && rAstig <= 150 ? rAstig / 2 : 0) : 0;
+            let lTotal = lMyopia > 0 ? lMyopia + (lAstig > 0 && lAstig <= 150 ? lAstig / 2 : 0) : 0;
 
             const rResult = getStandardDegree(convertDegree(rTotal));
             const lResult = getStandardDegree(convertDegree(lTotal));
