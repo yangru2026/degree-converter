@@ -217,10 +217,14 @@
         }
         .eye-warning {
             display: none;
-            color: #e74c3c;
+            color: #e74c3c !important;
             font-size: 11px;
             text-align: center;
             margin-top: 4px;
+            font-weight: 600;
+        }
+        .eye-warning.show {
+            display: block !important;
         }
 
         /* 最终结果放大 */
@@ -504,20 +508,20 @@
 
             if (rAstig > 150) {
                 rWarn.textContent = '\u26a0\ufe0f 右眼散光过高，按最高150度计算';
-                rWarn.style.display = 'block';
+                rWarn.classList.add('show');
                 hasHighAstig = true;
                 highAstigEyes.push('右眼');
             } else {
-                rWarn.style.display = 'none';
+                rWarn.classList.remove('show');
             }
 
             if (lAstig > 150) {
                 lWarn.textContent = '\u26a0\ufe0f 左眼散光过高，按最高150度计算';
-                lWarn.style.display = 'block';
+                lWarn.classList.add('show');
                 hasHighAstig = true;
                 highAstigEyes.push('左眼');
             } else {
-                lWarn.style.display = 'none';
+                lWarn.classList.remove('show');
             }
 
             // 散光超过150时弹出模态框提示（只弹一次，直到清空或页面刷新）
@@ -1006,8 +1010,8 @@
             document.getElementById('final-l').textContent = '0';
 
             // 清除警告
-            document.getElementById('r-warning').style.display = 'none';
-            document.getElementById('l-warning').style.display = 'none';
+            document.getElementById('r-warning').classList.remove('show');
+            document.getElementById('l-warning').classList.remove('show');
 
             // 清除OCR预览
             const preview = document.getElementById('ocrPreview');
@@ -1057,8 +1061,7 @@
                     showToast('已自动填充');
                 }
                 setTimeout(() => calculate(), 100);
-                // 清空输入框
-                e.target.value = '';
+                // 保留输入框内容以便核对
             }
         }
     </script>
