@@ -8,7 +8,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
             background: #f1f5f4;
             min-height: 100vh;
             padding: 16px;
@@ -49,18 +49,6 @@
             font-size: 18px;
             font-weight: 600;
             letter-spacing: 2px;
-        }
-        .clear-btn {
-            padding: 4px 14px;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.5);
-            color: white;
-            border-radius: 15px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        .clear-btn:hover {
-            background: rgba(255,255,255,0.3);
         }
         .brand-header {
             text-align: center;
@@ -128,7 +116,7 @@
             transition: max-height 0.3s ease;
         }
         .ocr-fold.open .ocr-fold-body {
-            max-height: 400px;
+            max-height: 500px;
         }
         .ocr-fold-inner {
             padding: 0 16px 16px;
@@ -168,7 +156,7 @@
         }
         .ocr-raw-text.show { display: block; }
         .ocr-raw-text::before {
-            content: "📝 OCR识别到的原始文字：";
+            content: "识别到的原始文字：";
             display: block; font-weight: 600; color: #666; margin-bottom: 4px;
         }
         .ocr-filled-tag {
@@ -226,6 +214,13 @@
         }
         .eye-result span {
             color: #7ba7a6; font-weight: 600; font-size: 20px;
+        }
+        .eye-warning {
+            display: none;
+            color: #e74c3c;
+            font-size: 11px;
+            text-align: center;
+            margin-top: 4px;
         }
 
         /* 最终结果放大 */
@@ -310,7 +305,7 @@
 <body>
     <div class="modal-overlay" id="astig-modal">
         <div class="modal-box">
-            <div style="font-size:40px;margin-bottom:12px;">⚠️</div>
+            <div style="font-size:40px;margin-bottom:12px;">&#9888;</div>
             <div class="modal-title">散光度数过高</div>
             <div class="modal-text" id="astig-modal-text">
                 您输入的散光度数超过150度，本工具仅支持150度以下散光换算。<br><br>
@@ -334,19 +329,19 @@
         </div>
 
         <div class="clear-row">
-            <button class="clear-btn" onclick="clearAll()">🗑️ 清空</button>
+            <button class="clear-btn" onclick="clearAll()">清空</button>
         </div>
 
         <!-- 截图识别折叠 -->
         <div class="ocr-fold" id="ocrFold">
             <div class="ocr-fold-header" onclick="toggleOCR()">
-                <span class="ocr-fold-title">📷 截图识别度数 <span style="font-size:11px;color:#999;font-weight:normal;margin-left:4px;">⚠️ 验光单识别不稳定，建议手动输入</span></span>
-                <span class="ocr-fold-arrow" id="ocrArrow">▼</span>
+                <span class="ocr-fold-title">截图识别度数 <span style="font-size:11px;color:#999;font-weight:normal;margin-left:4px;">(验光单识别不稳定，建议手动输入)</span></span>
+                <span class="ocr-fold-arrow" id="ocrArrow">&#9660;</span>
             </div>
             <div class="ocr-fold-body" id="ocrFoldBody">
                 <div class="ocr-fold-inner">
                     <div class="ocr-upload" id="ocrUpload">
-                        <div class="ocr-icon">📸</div>
+                        <div class="ocr-icon">&#128247;</div>
                         <div class="ocr-text">
                             <strong>点击上传</strong> 或拖拽图片<br>
                             也支持 <strong>Ctrl+V</strong> 粘贴截图
@@ -364,48 +359,48 @@
 
         <!-- 快速输入框 -->
         <div style="margin: 12px 0;">
-            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">⚡ 快速输入（粘贴文字/数字自动填充）</div>
+            <div style="font-size: 12px; color: #888; margin-bottom: 4px;">快速输入（粘贴文字/数字自动填充）</div>
             <input type="text" id="quickInput" placeholder="如：550 75 600 50 或 右眼250 散光100" 
                 style="width:100%;padding:10px 12px;border:1px solid #d0ddd8;border-radius:8px;font-size:14px;"
-                onpaste="handleQuickPaste(event)">
+                oninput="handleQuickInput(event)">
         </div>
 
         <!-- 左右眼并排 -->
         <div class="eyes-row">
             <div class="eye-card">
-                <div class="eye-card-title">👁️ 右眼</div>
+                <div class="eye-card-title">右眼</div>
                 <div class="eye-input-row">
                     <label>近视</label>
-                    <button class="btn-minus" onclick="adjust('r-myopia', -25)">−</button>
+                    <button class="btn-minus" onclick="adjust('r-myopia', -25)">&#8722;</button>
                     <input type="number" class="degree-input" id="r-myopia" value="0" onchange="calculate()">
                     <button class="btn-plus" onclick="adjust('r-myopia', 25)">+</button>
                 </div>
                 <div class="eye-input-row">
                     <label>散光</label>
-                    <button class="btn-minus" onclick="adjust('r-astigmatism', -25)">−</button>
+                    <button class="btn-minus" onclick="adjust('r-astigmatism', -25)">&#8722;</button>
                     <input type="number" class="degree-input" id="r-astigmatism" value="0" onchange="calculate()">
                     <button class="btn-plus" onclick="adjust('r-astigmatism', 25)">+</button>
                 </div>
                 <div class="eye-result">建议 <span id="r-result">0</span> 度</div>
-                <div class="eye-warning" id="r-warning" style="display:none; color:#e74c3c; font-size:11px; text-align:center; margin-top:4px;"></div>
+                <div class="eye-warning" id="r-warning"></div>
             </div>
 
             <div class="eye-card">
-                <div class="eye-card-title">👁️ 左眼</div>
+                <div class="eye-card-title">左眼</div>
                 <div class="eye-input-row">
                     <label>近视</label>
-                    <button class="btn-minus" onclick="adjust('l-myopia', -25)">−</button>
+                    <button class="btn-minus" onclick="adjust('l-myopia', -25)">&#8722;</button>
                     <input type="number" class="degree-input" id="l-myopia" value="0" onchange="calculate()">
                     <button class="btn-plus" onclick="adjust('l-myopia', 25)">+</button>
                 </div>
                 <div class="eye-input-row">
                     <label>散光</label>
-                    <button class="btn-minus" onclick="adjust('l-astigmatism', -25)">−</button>
+                    <button class="btn-minus" onclick="adjust('l-astigmatism', -25)">&#8722;</button>
                     <input type="number" class="degree-input" id="l-astigmatism" value="0" onchange="calculate()">
                     <button class="btn-plus" onclick="adjust('l-astigmatism', 25)">+</button>
                 </div>
                 <div class="eye-result">建议 <span id="l-result">0</span> 度</div>
-                <div class="eye-warning" id="l-warning" style="display:none; color:#e74c3c; font-size:11px; text-align:center; margin-top:4px;"></div>
+                <div class="eye-warning" id="l-warning"></div>
             </div>
         </div>
 
@@ -427,8 +422,8 @@
 
         <!-- 操作按钮 -->
         <div class="action-btns">
-            <button class="btn-copy" onclick="copyResult()">📋 复制文字</button>
-            <button class="btn-screenshot" onclick="generateScreenshot()">🖼️ 生成图片</button>
+            <button class="btn-copy" onclick="copyResult()">复制文字</button>
+            <button class="btn-screenshot" onclick="generateScreenshot()">生成图片</button>
         </div>
 
         <div class="screenshot-preview" id="screenshot-preview">
@@ -443,7 +438,7 @@
             <div>3. 散光度数若在150度以上，建议佩戴专业散光隐形</div>
             <div>4. 此链接为近视/散光的测算参考，非远视</div>
             <div>5. 测算前建议先去实体眼科机构进行专业验光检查</div>
-            <div style="margin-top:6px;color:#aaa;font-size:11px;">• 美瞳最高只有800度</div>
+            <div style="margin-top:6px;color:#aaa;font-size:11px;">美瞳最高只有800度</div>
         </div>
     </div>
 
@@ -451,6 +446,7 @@
 
     <script>
         let currentBrand = '弥生';
+        let modalShown = false;
 
         function adjust(id, delta) {
             const input = document.getElementById(id);
@@ -461,13 +457,21 @@
             calculate();
         }
 
+        // 换算逻辑：
+        // <=400 原度数
+        // 400-500 减25
+        // 500-700 减50
+        // 700-900 减75
+        // >900 减100
         function convertDegree(totalDegree) {
             if (totalDegree <= 400) return totalDegree;
             else if (totalDegree <= 500) return totalDegree - 25;
             else if (totalDegree <= 700) return totalDegree - 50;
-            else return totalDegree - 70;
+            else if (totalDegree <= 900) return totalDegree - 75;
+            else return totalDegree - 100;
         }
 
+        // 标准美瞳度数列表
         const STANDARD_DEGREES = [0, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525, 550, 575, 600, 650, 700, 750, 800];
 
         function getStandardDegree(raw) {
@@ -495,15 +499,50 @@
             // 左右眼散光警告显示
             const rWarn = document.getElementById('r-warning');
             const lWarn = document.getElementById('l-warning');
-            if (rAstig > 150) { rWarn.textContent = '⚠️ 右眼散光过高，按最高150换算'; rWarn.style.display = 'block'; }
-            else { rWarn.style.display = 'none'; }
-            if (lAstig > 150) { lWarn.textContent = '⚠️ 左眼散光过高，按最高150换算'; lWarn.style.display = 'block'; }
-            else { lWarn.style.display = 'none'; }
+            let hasHighAstig = false;
+            let highAstigEyes = [];
 
-            if (rAstig > 150 || lAstig > 150) showModal();
+            if (rAstig > 150) {
+                rWarn.textContent = '\u26a0\ufe0f 右眼散光过高，按最高150度计算';
+                rWarn.style.display = 'block';
+                hasHighAstig = true;
+                highAstigEyes.push('右眼');
+            } else {
+                rWarn.style.display = 'none';
+            }
 
-            let rTotal = rMyopia > 0 ? rMyopia + (rAstig > 0 && rAstig <= 150 ? rAstig / 2 : 0) : 0;
-            let lTotal = lMyopia > 0 ? lMyopia + (lAstig > 0 && lAstig <= 150 ? lAstig / 2 : 0) : 0;
+            if (lAstig > 150) {
+                lWarn.textContent = '\u26a0\ufe0f 左眼散光过高，按最高150度计算';
+                lWarn.style.display = 'block';
+                hasHighAstig = true;
+                highAstigEyes.push('左眼');
+            } else {
+                lWarn.style.display = 'none';
+            }
+
+            // 散光超过150时弹出模态框提示（只弹一次，直到清空或页面刷新）
+            if (hasHighAstig && !modalShown) {
+                const modalText = document.getElementById('astig-modal-text');
+                const eyesText = highAstigEyes.join('、');
+                modalText.innerHTML = eyesText + '散光度数超过150度，<strong style="color:#e74c3c;">已按150度封顶计算</strong>。<br><br>建议咨询专业眼科医生，或验配散光专用隐形眼镜。';
+                showModal();
+                modalShown = true;
+            }
+
+            // 换算逻辑：近视>0时，散光/2加入计算；散光超过150按150计算
+            // 近视0度+纯散光时，显示"建议 0 度"
+            let rTotal = 0;
+            let lTotal = 0;
+
+            if (rMyopia > 0) {
+                const effectiveAstig = Math.min(rAstig, 150);
+                rTotal = rMyopia + (effectiveAstig > 0 ? effectiveAstig / 2 : 0);
+            }
+
+            if (lMyopia > 0) {
+                const effectiveAstig = Math.min(lAstig, 150);
+                lTotal = lMyopia + (effectiveAstig > 0 ? effectiveAstig / 2 : 0);
+            }
 
             const rResult = getStandardDegree(convertDegree(rTotal));
             const lResult = getStandardDegree(convertDegree(lTotal));
@@ -528,7 +567,7 @@
         function closeModal() { document.getElementById('astig-modal').classList.remove('show'); }
 
         function copyResult() {
-            const text = `宝宝 右眼选${document.getElementById('final-r').textContent}度，左眼选${document.getElementById('final-l').textContent}度`;
+            const text = '宝宝 右眼选' + document.getElementById('final-r').textContent + '度，左眼选' + document.getElementById('final-l').textContent + '度';
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(text).then(() => showToast('已复制')).catch(() => fallbackCopy(text));
             } else {
@@ -565,51 +604,86 @@
             const lHighAstig = lAstigNum > 150;
 
             const canvas = document.createElement('canvas');
-            canvas.width = 400; canvas.height = highAstig ? 520 : 480;
+            canvas.width = 400;
+            canvas.height = highAstig ? 520 : 480;
             const ctx = canvas.getContext('2d');
 
-            ctx.fillStyle = '#f1f5f4'; ctx.fillRect(0, 0, 400, 480);
-            ctx.fillStyle = '#7ba7a6'; ctx.fillRect(0, 0, 400, 50);
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 17px sans-serif';
-            ctx.textAlign = 'center'; ctx.fillText(currentBrand, 200, 22);
-            ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = '10px sans-serif';
+            // 背景
+            ctx.fillStyle = '#f1f5f4';
+            ctx.fillRect(0, 0, 400, canvas.height);
+
+            // 顶部品牌栏
+            ctx.fillStyle = '#7ba7a6';
+            ctx.fillRect(0, 0, 400, 50);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 17px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(currentBrand, 200, 22);
+            ctx.fillStyle = 'rgba(255,255,255,0.85)';
+            ctx.font = '10px sans-serif';
             ctx.fillText('官方度数换算工具', 200, 42);
 
-            ctx.fillStyle = '#3d5a4d'; ctx.font = 'bold 16px sans-serif';
+            // 标题
+            ctx.fillStyle = '#3d5a4d';
+            ctx.font = 'bold 16px sans-serif';
             ctx.fillText('度数换算结果', 200, 75);
-            ctx.strokeStyle = '#d0ddd8'; ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(40, 90); ctx.lineTo(360, 90); ctx.stroke();
+            ctx.strokeStyle = '#d0ddd8';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(40, 90);
+            ctx.lineTo(360, 90);
+            ctx.stroke();
 
-            ctx.fillStyle = '#888'; ctx.font = '13px sans-serif';
+            // 左眼结果
+            ctx.fillStyle = '#888';
+            ctx.font = '13px sans-serif';
             ctx.fillText('左眼', 200, 115);
-            ctx.fillStyle = '#7ba7a6'; ctx.font = 'bold 34px sans-serif';
-            ctx.fillText(lResult + '°', 200, 155);
+            ctx.fillStyle = '#7ba7a6';
+            ctx.font = 'bold 34px sans-serif';
+            ctx.fillText(lResult + '\u00b0', 200, 155);
 
-            ctx.fillStyle = '#888'; ctx.font = '13px sans-serif';
+            // 右眼结果
+            ctx.fillStyle = '#888';
+            ctx.font = '13px sans-serif';
             ctx.fillText('右眼', 200, 195);
-            ctx.fillStyle = '#7ba7a6'; ctx.font = 'bold 34px sans-serif';
-            ctx.fillText(rResult + '°', 200, 235);
+            ctx.fillStyle = '#7ba7a6';
+            ctx.font = 'bold 34px sans-serif';
+            ctx.fillText(rResult + '\u00b0', 200, 235);
 
-            ctx.beginPath(); ctx.moveTo(40, 260); ctx.lineTo(360, 260); ctx.stroke();
-            ctx.fillStyle = '#888'; ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
-            ctx.fillText('左眼：近视 ' + lMyopia + '°' + (lAstig > 0 ? '  散光 ' + lAstig + '°' : ''), 40, 285);
-            ctx.fillText('右眼：近视 ' + rMyopia + '°' + (rAstig > 0 ? '  散光 ' + rAstig + '°' : ''), 40, 305);
+            // 分隔线
+            ctx.beginPath();
+            ctx.moveTo(40, 260);
+            ctx.lineTo(360, 260);
+            ctx.stroke();
 
-            ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+            // 原始度数
+            ctx.fillStyle = '#888';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('左眼：近视 ' + lMyopia + '\u00b0' + (lAstig > 0 ? '  散光 ' + lAstig + '\u00b0' : ''), 40, 285);
+            ctx.fillText('右眼：近视 ' + rMyopia + '\u00b0' + (rAstig > 0 ? '  散光 ' + rAstig + '\u00b0' : ''), 40, 305);
+
+            // 底部信息
+            ctx.textAlign = 'center';
             if (highAstig) {
                 // 散光超过150度警告条
-                ctx.fillStyle = '#e74c3c'; ctx.fillRect(30, 330, 340, 36);
-                ctx.fillStyle = '#fff'; ctx.font = 'bold 12px sans-serif';
-                let warnText = '⚠️ 散光超过150度，建议咨询专业眼科医生';
-                if (rHighAstig && !lHighAstig) warnText = '⚠️ 右眼散光过高，按最高150换算';
-                else if (lHighAstig && !rHighAstig) warnText = '⚠️ 左眼散光过高，按最高150换算';
-                else if (rHighAstig && lHighAstig) warnText = '⚠️ 双眼散光过高，按最高150换算';
+                ctx.fillStyle = '#e74c3c';
+                ctx.fillRect(30, 330, 340, 36);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px sans-serif';
+                let warnText = '\u26a0\ufe0f 散光超过150度，建议咨询专业眼科医生';
+                if (rHighAstig && !lHighAstig) warnText = '\u26a0\ufe0f 右眼散光过高，按最高150计算';
+                else if (lHighAstig && !rHighAstig) warnText = '\u26a0\ufe0f 左眼散光过高，按最高150计算';
+                else if (rHighAstig && lHighAstig) warnText = '\u26a0\ufe0f 双眼散光过高，按最高150计算';
                 ctx.fillText(warnText, 200, 352);
-                ctx.fillStyle = '#aaa'; ctx.font = '10px sans-serif';
+                ctx.fillStyle = '#aaa';
+                ctx.font = '10px sans-serif';
                 ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 450);
                 ctx.fillText(currentBrand + ' 官方工具', 200, 475);
                 ctx.fillText(new Date().toLocaleDateString('zh-CN'), 200, 495);
             } else {
+                ctx.fillStyle = '#aaa';
+                ctx.font = '10px sans-serif';
                 ctx.fillText('测算结果仅供参考，建议前往专业眼科机构验光', 200, 410);
                 ctx.fillText(currentBrand + ' 官方工具', 200, 435);
                 ctx.fillText(new Date().toLocaleDateString('zh-CN'), 200, 455);
@@ -622,13 +696,13 @@
                 document.getElementById('screenshot-preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 if (navigator.clipboard && navigator.clipboard.write && blob) {
                     navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
-                        document.getElementById('screenshot-hint').textContent = '✅ 图片已复制，可直接粘贴';
+                        document.getElementById('screenshot-hint').textContent = '图片已复制，可直接粘贴';
                         showToast('图片已复制');
                     }).catch(() => {
-                        document.getElementById('screenshot-hint').textContent = '⚠️ 请长按上方图片保存后发送';
+                        document.getElementById('screenshot-hint').textContent = '请长按上方图片保存后发送';
                     });
                 } else {
-                    document.getElementById('screenshot-hint').textContent = '⚠️ 请长按上方图片保存后发送';
+                    document.getElementById('screenshot-hint').textContent = '请长按上方图片保存后发送';
                 }
             }, 'image/png');
         }
@@ -677,13 +751,13 @@
 
         async function performOCR(imageData) {
             if (isLocalFile) {
-                showOCRStatus('⚠️ 本地打开不支持截图识别，请部署到网页后使用', 'localwarn');
+                showOCRStatus('本地打开不支持截图识别，请部署到网页后使用', 'localwarn');
                 return;
             }
-            showOCRStatus('🔍 正在识别图片中的度数...', 'processing');
+            showOCRStatus('正在识别图片中的度数...', 'processing');
             try {
                 const result = await Tesseract.recognize(imageData, 'chi_sim+eng', {
-                    logger: m => { if (m.status === 'recognizing text') showOCRStatus(`🔍 正在识别... ${(m.progress * 100).toFixed(0)}%`, 'processing'); }
+                    logger: m => { if (m.status === 'recognizing text') showOCRStatus('正在识别... ' + (m.progress * 100).toFixed(0) + '%', 'processing'); }
                 });
                 const extracted = extractDegrees(result.data.text);
                 // 始终显示原始文字，方便调试
@@ -695,7 +769,7 @@
                 if (extracted.hasData) {
                     const res = fillInputs(extracted);
                     if (res.hasInvalid) {
-                        showOCRStatus('⚠️ 识别到异常度数，请核对原始文字后手动输入', 'error');
+                        showOCRStatus('识别到异常度数，请核对原始文字后手动输入', 'error');
                     } else if (res.hasAstigCapped) {
                         const eyes = res.cappedEyes.join('、');
                         const modalText = document.getElementById('astig-modal-text');
@@ -703,16 +777,17 @@
                             modalText.innerHTML = eyes + '散光度数超过150度，<strong style="color:#e74c3c;">已按150度封顶换算</strong>。<br><br>请告知客户';
                         }
                         showModal();
-                        showOCRStatus(`⚠️ ${eyes}散光超150度！已按150度封顶换算`, 'success');
+                        modalShown = true;
+                        showOCRStatus(eyes + '散光超150度！已按150度封顶换算', 'success');
                     } else {
-                        showOCRStatus('✅ 识别成功！已自动填入', 'success');
+                        showOCRStatus('识别成功！已自动填入', 'success');
                     }
                     setTimeout(() => calculate(), 300);
                 } else {
-                    showOCRStatus('⚠️ 未能识别到度数，请手动输入', 'error');
+                    showOCRStatus('未能识别到度数，请手动输入', 'error');
                 }
             } catch (err) {
-                showOCRStatus('❌ 识别失败：' + err.message, 'error');
+                showOCRStatus('识别失败：' + err.message, 'error');
             }
         }
 
@@ -723,7 +798,7 @@
             // ========== 第一层：聊天截图/口语化解析 ==========
             function extractChatDegrees(rawText) {
                 // 统一空白
-                const text = rawText.replace(/[\s\u3000]+/g, ' ').trim();
+                const t = rawText.replace(/[\s\u3000]+/g, ' ').trim();
                 const r = { myopia: null, astig: null };
                 const l = { myopia: null, astig: null };
 
@@ -734,19 +809,19 @@
                 // 提取某个眼睛的数据段（找到第一个匹配关键词，截到下一个眼关键词之前）
                 function extractEyeData(eyeKeywords) {
                     for (const kw of eyeKeywords) {
-                        const idx = text.indexOf(kw);
+                        const idx = t.indexOf(kw);
                         if (idx === -1) continue;
                         const start = idx + kw.length;
                         // 结束位置 = 下一个任何眼关键词
                         const allEyeKeywords = [...RIGHT_EYES, ...LEFT_EYES];
-                        let end = text.length;
+                        let end = t.length;
                         for (const ek of allEyeKeywords) {
                             if (ek === kw) continue;
-                            const eIdx = text.indexOf(ek, start);
+                            const eIdx = t.indexOf(ek, start);
                             if (eIdx !== -1 && eIdx < end) end = eIdx;
                         }
-                        const segment = text.substring(start, end).trim();
-                        // 支持负号、小数、屈光度格式（-6.00 → 600）
+                        const segment = t.substring(start, end).trim();
+                        // 支持负号、小数、屈光度格式（-6.00 -> 600）
                         const nums = segment.match(/[-+]?\d+\.?\d*/g);
                         if (!nums) return null;
                         const values = nums.map(n => {
@@ -767,13 +842,13 @@
                 if (lData) { l.myopia = lData.myopia; l.astig = lData.astig; }
 
                 // 全局散光检测：如"散光100""散光都100""两边散光100"
-                const astigMatch = text.match(/散光\D*(\d+\.?\d*)/);
+                const astigMatch = t.match(/散光\D*(\d+\.?\d*)/);
                 if (astigMatch) {
                     let astigVal = Math.abs(parseFloat(astigMatch[1]));
                     if (astigVal > 0 && astigVal <= 10) astigVal = Math.round(astigVal * 100);
                     const ctxStart = Math.max(0, astigMatch.index - 8);
-                    const ctxEnd = Math.min(text.length, astigMatch.index + astigMatch[0].length + 8);
-                    const ctx = text.substring(ctxStart, ctxEnd);
+                    const ctxEnd = Math.min(t.length, astigMatch.index + astigMatch[0].length + 8);
+                    const ctx = t.substring(ctxStart, ctxEnd);
                     const isBoth = /都|两边|双眼|两个|左右|各/.test(ctx);
                     if (r.astig === null && r.myopia !== null) r.astig = astigVal;
                     else if (l.astig === null && l.myopia !== null) l.astig = astigVal;
@@ -781,14 +856,14 @@
                 }
 
                 // 全局共用：双/都/两/各/左右眼 — 补齐缺失的眼
-                const isBothEye = /双|都|两|各|左右/.test(text);
+                const isBothEye = /双|都|两|各|左右/.test(t);
                 if (isBothEye) {
                     if (r.myopia !== null && l.myopia === null) {
                         l.myopia = r.myopia; l.astig = r.astig;
                     } else if (l.myopia !== null && r.myopia === null) {
                         r.myopia = l.myopia; r.astig = l.astig;
                     } else if (r.myopia === null && l.myopia === null) {
-                        const nums = text.match(/[-+]?\d+\.?\d*/g);
+                        const nums = t.match(/[-+]?\d+\.?\d*/g);
                         if (nums) {
                             const values = nums.map(n => {
                                 let v = Math.abs(parseFloat(n));
@@ -807,8 +882,8 @@
                 }
 
                 // 纯数字序列，无左右标注，按顺序填充
-                // "550 75 600 50" → 右(550,75) 左(600,50)
-                const allNums = text.match(/[-+]?\d+\.?\d*/g);
+                // "550 75 600 50" -> 右(550,75) 左(600,50)
+                const allNums = t.match(/[-+]?\d+\.?\d*/g);
                 if (allNums) {
                     const nums = allNums.map(n => {
                         let v = Math.abs(parseFloat(n));
@@ -839,6 +914,7 @@
                 result.hasData = true;
                 return result;
             }
+
             // 验光单特征：每个眼睛的数据重复多行，粗体行（第一行）为准
             // 策略：过滤无关行后，取前两个包含 >=2 个 0-10 数字的行
             const lines = text.split('\n').map(l => l.trim()).filter(l => l);
@@ -929,6 +1005,11 @@
             document.getElementById('final-r').textContent = '0';
             document.getElementById('final-l').textContent = '0';
 
+            // 清除警告
+            document.getElementById('r-warning').style.display = 'none';
+            document.getElementById('l-warning').style.display = 'none';
+
+            // 清除OCR预览
             const preview = document.getElementById('ocrPreview');
             const previewImg = document.getElementById('ocrPreviewImg');
             if (preview) preview.classList.remove('show');
@@ -937,44 +1018,49 @@
             document.querySelectorAll('.ocr-filled-tag').forEach(tag => tag.remove());
             const rawPreview = document.getElementById('ocr-raw-text');
             if (rawPreview) rawPreview.classList.remove('show');
+
+            // 清除截图预览
             document.getElementById('screenshot-preview').classList.remove('show');
+
+            // 清除快速输入
             const quickInput = document.getElementById('quickInput');
             if (quickInput) quickInput.value = '';
+
+            // 重置模态框标记
+            modalShown = false;
 
             showToast('已清空');
         }
 
         calculate();
-        // 快速输入解析
-        function handleQuickPaste(e) {
-            setTimeout(() => {
-                const input = e.target;
-                const text = input.value.trim();
-                if (!text) return;
-                
-                const extracted = extractDegrees(text);
-                if (extracted.hasData) {
-                    const res = fillInputs(extracted);
-                    if (res.hasInvalid) {
-                        showToast('⚠️ 检测到异常度数，请核对');
-                    } else if (res.hasAstigCapped) {
-                        const eyes = res.cappedEyes.join('、');
-                        const modalText = document.getElementById('astig-modal-text');
-                        if (modalText) {
-                            modalText.innerHTML = eyes + '散光度数超过150度，<strong style="color:#e74c3c;">已按150度封顶换算</strong>。<br><br>请告知客户';
-                        }
-                        showModal();
-                        showToast('⚠️ ' + eyes + '散光超150度！已封顶');
-                    } else {
-                        showToast('✅ 已自动填充');
-                    }
-                    setTimeout(() => calculate(), 100);
-                } else {
-                    showToast('⚠️ 未能识别，请检查格式');
-                }
-            }, 0);
-        }
 
+        // 快速输入解析（oninput事件，支持粘贴和手动输入）
+        function handleQuickInput(e) {
+            const text = e.target.value.trim();
+            if (!text) return;
+
+            const extracted = extractDegrees(text);
+            if (extracted.hasData) {
+                const res = fillInputs(extracted);
+                if (res.hasInvalid) {
+                    showToast('检测到异常度数，请核对');
+                } else if (res.hasAstigCapped) {
+                    const eyes = res.cappedEyes.join('、');
+                    const modalText = document.getElementById('astig-modal-text');
+                    if (modalText) {
+                        modalText.innerHTML = eyes + '散光度数超过150度，<strong style="color:#e74c3c;">已按150度封顶换算</strong>。<br><br>请告知客户';
+                    }
+                    showModal();
+                    modalShown = true;
+                    showToast(eyes + '散光超150度！已封顶');
+                } else {
+                    showToast('已自动填充');
+                }
+                setTimeout(() => calculate(), 100);
+                // 清空输入框
+                e.target.value = '';
+            }
+        }
     </script>
 </body>
 </html>
