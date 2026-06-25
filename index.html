@@ -966,9 +966,8 @@
                 else if (val > 10 && val < 1000) val = Math.round(val);
                 // 合理性校验：近视度数不可能超过1000
                 if (val > 1000) { hasInvalid = true; return; }
-                // 散光封顶150度，记录哪个眼睛
+                // 记录哪个眼睛散光超过150（但输入框保留原始值）
                 if (id.includes('astigmatism') && val > 150) {
-                    val = 150;
                     const eye = id.startsWith('r') ? '右眼' : '左眼';
                     if (!cappedEyes.includes(eye)) cappedEyes.push(eye);
                 }
